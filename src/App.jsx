@@ -132,7 +132,7 @@ function App() {
           <a href="#features" onClick={() => setMobileMenu(false)}>Imkoniyatlar</a>
           <a href="#path" onClick={() => setMobileMenu(false)}>O‘quv yo‘li</a>
           <a href="#about" onClick={() => setMobileMenu(false)}>Platforma haqida</a>
-          <button className="nav-cta" onClick={startTest}>Darajamni aniqlash <ArrowRight size={16} /></button>
+          <button className="nav-cta" onClick={startTest}>Grammar testi <ArrowRight size={16} /></button>
         </nav>
       </header>
 
@@ -184,19 +184,19 @@ function App() {
         </section>
 
         <section className="path-section" id="path">
-          <div className="path-copy"><span className="eyebrow">BIRINCHI QADAM</span><h2>Maqsadingizni<br /><span>bugun belgilang.</span></h2><p>Ingliz tilini o‘rganishda eng muhimi — hozirgi darajangizni bilish va davomiylik. Qisqa testdan boshlang, keyin o‘zingizga mos o‘quv rejasini tanlang.</p><button className="button-primary" onClick={startTest}>Darajamni tekshirish <ArrowRight size={18}/></button></div>
-          <div className="path-steps"><div className="path-step active"><span>1</span><div><b>Darajangizni aniqlang</b><small>Qisqa boshlang‘ich test</small></div><CheckCircle2 size={20}/></div><div className="path-step"><span>2</span><div><b>Maqsadingizni tanlang</b><small>CEFR, IELTS yoki umumiy English</small></div><ChevronRight size={20}/></div><div className="path-step"><span>3</span><div><b>Reja bo‘yicha o‘rganing</b><small>Darslar va amaliy mashqlar</small></div><ChevronRight size={20}/></div></div>
+          <div className="path-copy"><span className="eyebrow">BIRINCHI QADAM</span><h2>Maqsadingizni<br /><span>bugun belgilang.</span></h2><p>Grammar va Reading testlari orqali bilimingizni tekshiring. Keyin o‘zingizga mos o‘quv yo‘nalishini tanlang.</p><button className="button-primary" onClick={startTest}>Grammar testini boshlash <ArrowRight size={18}/></button></div>
+          <div className="path-steps"><div className="path-step active"><span>1</span><div><b>Testlarni bajaring</b><small>Grammar yoki Reading’dan boshlang</small></div><CheckCircle2 size={20}/></div><div className="path-step"><span>2</span><div><b>Maqsadingizni tanlang</b><small>CEFR, IELTS yoki umumiy English</small></div><ChevronRight size={20}/></div><div className="path-step"><span>3</span><div><b>Reja bo‘yicha o‘rganing</b><small>Darslar va amaliy mashqlar</small></div><ChevronRight size={20}/></div></div>
         </section>
 
         <section className="bottom-cta" id="about"><div><span className="eyebrow">ENGLISH MASTER</span><h2>Kelajakdagi ingliz tilingiz<br />bugungi qadamingizdan boshlanadi.</h2></div><button className="button-light" onClick={startTest}>Bepul boshlash <ArrowRight size={18}/></button></section>
       </main>
       <footer><a className="footer-brand" href="#home">english<span>master</span></a><p>IELTS & CEFR Preparation Platform</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
 
-      {testOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Daraja testi">
+      {testOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Grammar testi">
         <div className="test-modal">
           <button className="modal-close" onClick={() => setTestOpen(false)} aria-label="Yopish"><X size={21}/></button>
           {!testFinished ? <>
-            <div className="test-kicker">ENGLISH MASTER <span>·</span> TEZKOR TEST</div>
+            <div className="test-kicker">ENGLISH MASTER <span>·</span> GRAMMAR TEST</div>
             <div className="test-progress-label"><span>Savol {questionIndex + 1} / {questions.length}</span><span>{Math.round(((questionIndex + 1) / questions.length) * 100)}%</span></div>
             <div className="test-progress"><span style={{width: ((questionIndex + 1) / questions.length) * 100 + '%'}}></span></div>
             <h2>{questions[questionIndex].q}</h2><p className="test-help">To‘g‘ri javobni tanlang.</p>
