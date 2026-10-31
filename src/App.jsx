@@ -54,6 +54,11 @@ function App() {
   const [readingIndex, setReadingIndex] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState({});
   const [readingFinished, setReadingFinished] = useState(false);
+  const [studyPlanOpen, setStudyPlanOpen] = useState(false);
+  const [activeLesson, setActiveLesson] = useState(false);
+  const [lessonAnswer, setLessonAnswer] = useState('');
+  const [lessonChecked, setLessonChecked] = useState(false);
+  const [completedLessons, setCompletedLessons] = useState([]);
 
   const startReading = () => {
     setReadingIndex(0);
@@ -65,6 +70,13 @@ function App() {
     const value = readingAnswers[`${pIndex}-${qIndex}`];
     return n + (value !== undefined && String(value).trim().toLowerCase() === question.answer ? 1 : 0);
   }, 0), 0);
+  const readingLevelCode = (() => {
+    const passed = readingPassages.map((passage, pIndex) => passage.questions.reduce((n, question, qIndex) => n + (String(readingAnswers[`${pIndex}-${qIndex}`] ?? '').trim().toLowerCase() === question.answer ? 1 : 0), 0));
+    if (passed[0] < 3) return 'A1';
+    if (passed[1] < 3) return 'A2';
+    if (passed[2] < 3) return 'B1';
+    return 'B2';
+  })();
   const readingLevel = (() => {
     const passed = readingPassages.map((passage, pIndex) => passage.questions.reduce((n, question, qIndex) => n + (String(readingAnswers[`${pIndex}-${qIndex}`] ?? '').trim().toLowerCase() === question.answer ? 1 : 0), 0));
     if (passed[0] < 3) return 'A1 — Beginner';
@@ -144,6 +156,50 @@ function App() {
       </main>
       <footer><a className="footer-brand" href="#home">english<span>master</span></a><p>IELTS & CEFR Preparation Platform</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
 
+      {studyPlanOpen && <div className="modal-backdrop study-backdrop" role="dialog" aria-modal="true" aria-label="Shaxsiy o‘quv reja">
+        <div className="test-modal study-modal">
+          <button className="modal-close" onClick={() => { setStudyPlanOpen(false); setActiveLesson(false); }} aria-label="Yopish"><X size={21}/></button>
+          {!activeLesson ? <>
+            <div className="test-kicker">ENGLISH MASTER · SHAXSIY REJA</div>
+            <div className="study-hero"><div className="result-icon"><GraduationCap size={30}/></div><div><span className="study-level-tag">{readingLevelCode} DARAJA</span><h2>Sizning o‘quv yo‘lingiz</h2><p>Reading test natijangiz asosida boshlang‘ich reja tayyorlandi.</p></div></div>
+            <div className="study-notice">Bu hozircha Reading natijasiga asoslangan taxminiy reja. To‘liq CEFR darajasini aniqlash uchun keyin Listening, Writing va Speaking ham tekshiriladi.</div>
+            <h3 className="study-section-title">Birinchi 7 kunlik reja</h3>
+            <div className="study-day-list">
+              {[
+                ['1-kun','Vocabulary','10 ta yangi so‘z va misollar'],
+                ['2-kun','Grammar','Asosiy grammatikani o‘rganish'],
+                ['3-kun','Reading','Qisqa matn va tushunish savollari'],
+                ['4-kun','Listening','Qisqa audio tinglab tushunish'],
+                ['5-kun','Speaking','Kundalik mavzuda 5 ta gap'],
+                ['6-kun','Practice','Aralash mashqlar va takrorlash'],
+                ['7-kun','Review','Haftalik takrorlash va mini-test'],
+              ].map(([day,title,desc], index) => <div className={completedLessons.includes(index) ? 'study-day completed' : 'study-day'} key={day}><span className="study-day-number">{completedLessons.includes(index) ? '✓' : index+1}</span><div><b>{day} · {title}</b><small>{desc}</small></div><span className="study-day-status">{completedLessons.includes(index) ? 'Bajarildi' : index === 0 ? 'Boshlash' : 'Rejada'}</span></div>)}
+            </div>
+            <button className="button-primary test-next" onClick={() => { setActiveLesson(true); setLessonAnswer(''); setLessonChecked(false); }}>1-darsni boshlash <ArrowRight size={17}/></button>
+            <button className="restart-link" onClick={() => { setStudyPlanOpen(false); setReadingOpen(true); }}>Reading natijasiga qaytish</button>
+          </> : <>
+            <div className="test-kicker">1-DARS · VOCABULARY</div>
+            <span className="study-level-tag">{readingLevelCode} DARAJA</span>
+            <h2 className="lesson-title">Kundalik inglizcha so‘zlar</h2>
+            <p className="lesson-intro">Quyidagi so‘zlarni o‘rganing. Keyin kichik savolga javob bering.</p>
+            <div className="vocab-list">
+              {[
+                ['learn','o‘rganmoq','I learn English every day.'],
+                ['improve','yaxshilamoq','I want to improve my English.'],
+                ['practice','mashq qilmoq','I practice speaking at home.'],
+                ['goal','maqsad','My goal is to speak English well.'],
+                ['progress','rivojlanish','I can see my progress.'],
+              ].map(([word,translation,example]) => <div className="vocab-item" key={word}><div><b>{word}</b><small>{translation}</small></div><p>{example}</p></div>)}
+            </div>
+            <div className="lesson-question"><b>Mini-test: “Men ingliz tilimni yaxshilamoqchiman” jumlasidagi “yaxshilamoq” qaysi so‘z?</b>
+              {['learn','improve','goal'].map(option => <button key={option} className={lessonAnswer === option ? 'answer-option selected' : 'answer-option'} onClick={() => {setLessonAnswer(option); setLessonChecked(false);}}>{option}</button>)}
+              {lessonChecked && <p className={lessonAnswer === 'improve' ? 'lesson-feedback correct' : 'lesson-feedback incorrect'}>{lessonAnswer === 'improve' ? 'To‘g‘ri! “Improve” — yaxshilamoq.' : 'Yana urinib ko‘ring. “Improve” — yaxshilamoq.'}</p>}
+            </div>
+            <button className="button-primary test-next" disabled={!lessonAnswer} onClick={() => { if (!lessonChecked) { setLessonChecked(true); } else if (lessonAnswer === 'improve') { setCompletedLessons(prev => prev.includes(0) ? prev : [...prev, 0]); setActiveLesson(false); } else { setLessonChecked(false); } }}>{!lessonChecked ? 'Javobni tekshirish' : lessonAnswer === 'improve' ? 'Darsni yakunlash' : 'Qayta urinish'} <ArrowRight size={17}/></button>
+            <button className="restart-link" onClick={() => setActiveLesson(false)}>O‘quv rejaga qaytish</button>
+          </>}
+        </div>
+      </div>}
       {readingOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Reading daraja testi">
         <div className="test-modal reading-modal">
           <button className="modal-close" onClick={() => setReadingOpen(false)} aria-label="Yopish"><X size={21}/></button>
@@ -167,7 +223,7 @@ function App() {
               {readingIndex > 0 && <button className="test-back" onClick={() => setReadingIndex(readingIndex - 1)}>← Oldingi matn</button>}
               <button className="button-primary test-next" onClick={() => readingIndex < readingPassages.length - 1 ? setReadingIndex(readingIndex + 1) : setReadingFinished(true)}>{readingIndex === readingPassages.length - 1 ? 'Natijani ko‘rish' : 'Keyingi matn'} <ArrowRight size={17}/></button>
             </div>
-          </> : <div className="test-result"><div className="result-icon"><BookOpen size={32}/></div><span className="test-kicker">READING TEST YAKUNLANDI</span><h2>Sizning Reading natijangiz</h2><div className="result-level">{readingLevel}</div><p>Jami 16 ta savoldan {readingScore} tasiga to‘g‘ri javob berdingiz.</p><div className="result-note">Bu natija faqat Reading — o‘qib tushunish ko‘nikmasini taxminiy baholaydi. Daraja matnlarning murakkabligi va javoblaringizga qarab hisoblandi; bu rasmiy CEFR sertifikati emas.</div><button className="button-primary test-next" onClick={() => setReadingOpen(false)}>Yopish <ArrowRight size={17}/></button><button className="restart-link" onClick={startReading}>Reading testni qayta ishlash</button></div>}
+          </> : <div className="test-result"><div className="result-icon"><BookOpen size={32}/></div><span className="test-kicker">READING TEST YAKUNLANDI</span><h2>Sizning Reading natijangiz</h2><div className="result-level">{readingLevel}</div><p>Jami 16 ta savoldan {readingScore} tasiga to‘g‘ri javob berdingiz.</p><div className="result-note">Bu natija faqat Reading — o‘qib tushunish ko‘nikmasini taxminiy baholaydi. Daraja matnlarning murakkabligi va javoblaringizga qarab hisoblandi; bu rasmiy CEFR sertifikati emas.</div><button className="button-primary test-next" onClick={() => { setReadingOpen(false); setStudyPlanOpen(true); }}>O‘quv rejamni ko‘rish <ArrowRight size={17}/></button><button className="restart-link" onClick={startReading}>Reading testni qayta ishlash</button></div>}
         </div>
       </div>}
     </div>
