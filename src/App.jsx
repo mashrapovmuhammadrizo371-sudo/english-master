@@ -22,6 +22,54 @@ const questions = [
   { q: 'The new bridge ___ by the end of next year.', options: ['will complete', 'will have completed', 'will have been completed', 'has been completing'], answer: 2 },
   { q: 'Hardly ___ the room when the phone rang.', options: ['I had entered', 'had I entered', 'I entered', 'did I entered'], answer: 1 },
   { q: 'Were it not for her advice, I ___ the wrong decision.', options: ['would make', 'will make', 'would have made', 'made'], answer: 2 },
+
+];
+
+const readingPassages = [
+  {
+    level: 'A1',
+    title: 'Tom’s Day',
+    text: 'Tom is ten years old. He lives in a small house with his family. Every morning, he eats breakfast at seven o’clock and walks to school. His favourite subject is English.',
+    questions: [
+      { type: 'tf', q: 'Tom is ten years old.', answer: 'true' },
+      { type: 'tf', q: 'Tom goes to school by bus.', answer: 'false' },
+      { type: 'word', q: 'Where does Tom live?', answer: 'house' },
+      { type: 'word', q: 'What is his favourite subject?', answer: 'english' },
+    ],
+  },
+  {
+    level: 'A2',
+    title: 'A Weekend Trip',
+    text: 'Last Saturday, Maya travelled to Samarkand with her cousin. They went by train because it was cheaper than taking a taxi. In the morning, they visited a famous square and took photos. After lunch, they bought some local bread before returning home in the evening.',
+    questions: [
+      { type: 'tf', q: 'Maya travelled with her brother.', answer: 'false' },
+      { type: 'tf', q: 'They chose the train because it cost less.', answer: 'true' },
+      { type: 'word', q: 'Where did Maya travel?', answer: 'samarkand' },
+      { type: 'word', q: 'What local food did they buy?', answer: 'bread' },
+    ],
+  },
+  {
+    level: 'B1',
+    title: 'Learning a New Skill',
+    text: 'When Aziz decided to learn photography, he expected to improve quickly. At first, however, many of his pictures were too dark or out of focus. Instead of buying an expensive camera, he practised with his phone and watched free lessons online. After several months, he became more confident and began taking photos for school events.',
+    questions: [
+      { type: 'tf', q: 'Aziz immediately became an excellent photographer.', answer: 'false' },
+      { type: 'tf', q: 'He used free online lessons to practise.', answer: 'true' },
+      { type: 'word', q: 'Which device did Aziz use at first?', answer: 'phone' },
+      { type: 'word', q: 'What events did he later take photos for?', answer: 'school' },
+    ],
+  },
+  {
+    level: 'B2',
+    title: 'The Value of Public Libraries',
+    text: 'Although digital resources have made information easier to access, public libraries continue to serve an important purpose. They provide reliable materials, quiet places to study, and support for people who may not have a suitable internet connection at home. Many libraries have also adapted by offering workshops and access to digital tools. Their role is therefore changing rather than disappearing.',
+    questions: [
+      { type: 'tf', q: 'The text argues that public libraries are no longer useful.', answer: 'false' },
+      { type: 'tf', q: 'Some libraries now offer workshops and digital tools.', answer: 'true' },
+      { type: 'word', q: 'What kind of place do libraries provide for studying?', answer: 'quiet' },
+      { type: 'word', q: 'According to the text, is the role of libraries disappearing or changing?', answer: 'changing' },
+    ],
+  },
 ];
 
 function App() {
@@ -29,9 +77,9 @@ function App() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [testFinished, setTestFinished] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);\n  const [readingOpen, setReadingOpen] = useState(false);\n  const [readingIndex, setReadingIndex] = useState(0);\n  const [readingAnswers, setReadingAnswers] = useState({});\n  const [readingFinished, setReadingFinished] = useState(false);
 
-  const startTest = () => {
+  const startReading = () => {\n    setReadingIndex(0);\n    setReadingAnswers({});\n    setReadingFinished(false);\n    setReadingOpen(true);\n    setTestOpen(false);\n  };\n  const readingScore = readingPassages.reduce((sum, passage, pIndex) => sum + passage.questions.reduce((n, question, qIndex) => {\n    const value = readingAnswers[`${pIndex}-${qIndex}`];\n    return n + (value !== undefined && String(value).trim().toLowerCase() === question.answer ? 1 : 0);\n  }, 0), 0);\n  const readingLevel = (() => {\n    const passed = readingPassages.map((passage, pIndex) => passage.questions.reduce((n, question, qIndex) => n + (String(readingAnswers[`${pIndex}-${qIndex}`] ?? '').trim().toLowerCase() === question.answer ? 1 : 0), 0));\n    if (passed[0] < 3) return 'A1 — Beginner';\n    if (passed[1] < 3) return 'A2 — Elementary';\n    if (passed[2] < 3) return 'B1 — Intermediate';\n    return 'B2 — Upper-intermediate';\n  })();\n\n  const startTest = () => {
     setQuestionIndex(0);
     setAnswers([]);
     setTestFinished(false);
@@ -105,7 +153,7 @@ function App() {
         <section className="features-section" id="features">
           <div className="section-heading"><span className="eyebrow">SIZ UCHUN YARATILGAN</span><h2>O‘rganishning aniq<br /><span>va qulay yo‘li.</span></h2><p>Kerakli ko‘nikmalarni bir joyda rivojlantiring. Platforma bosqichma-bosqich yangi imkoniyatlar bilan kengayadi.</p></div>
           <div className="feature-grid">
-            <article className="feature-card"><div className="feature-icon icon-violet"><Target size={23}/></div><span className="feature-number">01</span><h3>Darajani aniqlash</h3><p>Qisqa diagnostik test orqali ingliz tilini qaysi bosqichdan davom ettirishni bilib oling.</p><button onClick={startTest} className="text-link">Testni boshlash <ArrowRight size={16}/></button></article>
+            <article className="feature-card"><div className="feature-icon icon-violet"><Target size={23}/></div><span className="feature-number">01</span><h3>Darajani aniqlash</h3><p>Grammatika testi yoki matn asosidagi Reading testi orqali bilimingizni tekshiring.</p><button onClick={startTest} className="text-link">Grammar test <ArrowRight size={16}/></button><button onClick={startReading} className="text-link reading-link">Reading test <ArrowRight size={16}/></button></article>
             <article className="feature-card"><div className="feature-icon icon-blue"><BookOpen size={23}/></div><span className="feature-number">02</span><h3>Darajaga mos darslar</h3><p>Grammatika, lug‘at va boshqa muhim mavzularni tartib bilan o‘rganing.</p><span className="coming-label">TEZ ORADA</span></article>
             <article className="feature-card"><div className="feature-icon icon-orange"><Trophy size={23}/></div><span className="feature-number">03</span><h3>IELTS & CEFR practice</h3><p>Imtihon formatiga mos mashqlar orqali bilimingizni mustahkamlang.</p><span className="coming-label">TEZ ORADA</span></article>
           </div>
