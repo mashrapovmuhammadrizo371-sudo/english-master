@@ -201,7 +201,10 @@ function App() {
             <div className="test-progress"><span style={{width: ((questionIndex + 1) / questions.length) * 100 + '%'}}></span></div>
             <h2>{questions[questionIndex].q}</h2><p className="test-help">To‘g‘ri javobni tanlang.</p>
             <div className="answer-list">{questions[questionIndex].options.map((option, i) => <button key={option} className={answers[questionIndex] === i ? 'answer-option selected' : 'answer-option'} onClick={() => chooseAnswer(i)}><span>{String.fromCharCode(65 + i)}</span>{option}{answers[questionIndex] === i && <CheckCircle2 size={18}/>}</button>)}</div>
-            <button className="button-primary test-next" disabled={answers[questionIndex] === undefined} onClick={nextQuestion}>{questionIndex === questions.length - 1 ? 'Natijani ko‘rish' : 'Keyingi savol'} <ArrowRight size={17}/></button>
+            <div className="test-navigation">
+              {questionIndex > 0 && <button className="test-back" onClick={() => setQuestionIndex(questionIndex - 1)}>← Oldingi savol</button>}
+              <button className="button-primary test-next" disabled={answers[questionIndex] === undefined} onClick={nextQuestion}>{questionIndex === questions.length - 1 ? 'Natijani ko‘rish' : 'Keyingi savol'} <ArrowRight size={17}/></button>
+            </div>
           </> : <div className="test-result"><div className="result-icon"><GraduationCap size={32}/></div><span className="test-kicker">TEST YAKUNLANDI</span><h2>Sizning taxminiy natijangiz</h2><div className="result-level">{level}</div><p>Siz {questions.length} ta savoldan {score} tasiga to‘g‘ri javob berdingiz.</p><div className="result-note">Bu 20 savollik boshlang‘ich test asosan grammatika va lug‘atni tekshiradi. Natija taxminiy: u rasmiy CEFR yoki IELTS bahosi emas va Listening, Speaking, Reading hamda Writing ko‘nikmalarini to‘liq o‘lchamaydi.</div><button className="button-primary test-next" onClick={() => setTestOpen(false)}>Davom etish <ArrowRight size={17}/></button><button className="restart-link" onClick={startTest}>Testni qayta ishlash</button></div>}
         </div>
       </div>}
@@ -225,7 +228,10 @@ function App() {
                 </div> : <input className="reading-input" value={readingAnswers[`${readingIndex}-${qIndex}`] ?? ''} onChange={e => setReadingAnswers(prev => ({...prev, [`${readingIndex}-${qIndex}`]: e.target.value}))} placeholder="Bitta so‘z yozing" aria-label={question.q}/>}
               </div>)}
             </div>
-            <button className="button-primary test-next" onClick={() => readingIndex < readingPassages.length - 1 ? setReadingIndex(readingIndex + 1) : setReadingFinished(true)}>{readingIndex === readingPassages.length - 1 ? 'Natijani ko‘rish' : 'Keyingi matn'} <ArrowRight size={17}/></button>
+            <div className="test-navigation">
+              {readingIndex > 0 && <button className="test-back" onClick={() => setReadingIndex(readingIndex - 1)}>← Oldingi matn</button>}
+              <button className="button-primary test-next" onClick={() => readingIndex < readingPassages.length - 1 ? setReadingIndex(readingIndex + 1) : setReadingFinished(true)}>{readingIndex === readingPassages.length - 1 ? 'Natijani ko‘rish' : 'Keyingi matn'} <ArrowRight size={17}/></button>
+            </div>
           </> : <div className="test-result"><div className="result-icon"><BookOpen size={32}/></div><span className="test-kicker">READING TEST YAKUNLANDI</span><h2>Sizning Reading natijangiz</h2><div className="result-level">{readingLevel}</div><p>Jami 16 ta savoldan {readingScore} tasiga to‘g‘ri javob berdingiz.</p><div className="result-note">Bu natija faqat Reading — o‘qib tushunish ko‘nikmasini taxminiy baholaydi. Daraja matnlarning murakkabligi va javoblaringizga qarab hisoblandi; bu rasmiy CEFR sertifikati emas.</div><button className="button-primary test-next" onClick={() => setReadingOpen(false)}>Yopish <ArrowRight size={17}/></button><button className="restart-link" onClick={startReading}>Reading testni qayta ishlash</button></div>}
         </div>
       </div>}
