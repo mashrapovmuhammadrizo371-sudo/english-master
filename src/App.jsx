@@ -2,11 +2,26 @@ import { useState } from 'react';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X } from 'lucide-react';
 
 const questions = [
-  { q: 'She ___ to school every day.', options: ['go', 'goes', 'going', 'gone'], answer: 1 },
-  { q: 'I have lived here ___ 2022.', options: ['for', 'from', 'since', 'during'], answer: 2 },
-  { q: 'If I had more time, I ___ another language.', options: ['learn', 'will learn', 'would learn', 'learned'], answer: 2 },
-  { q: 'The report ___ by the manager yesterday.', options: ['wrote', 'was written', 'is writing', 'has write'], answer: 1 },
-  { q: 'Despite ___ tired, he finished the assignment.', options: ['be', 'was', 'being', 'been'], answer: 2 },
+  { q: 'I ___ a student.', options: ['am', 'is', 'are', 'be'], answer: 0 },
+  { q: 'She ___ coffee every morning.', options: ['drink', 'drinks', 'drinking', 'drank'], answer: 1 },
+  { q: 'There ___ two books on the table.', options: ['is', 'am', 'are', 'be'], answer: 2 },
+  { q: 'We ___ to the park yesterday.', options: ['go', 'goes', 'went', 'gone'], answer: 2 },
+  { q: 'Choose the correct sentence.', options: ['He can to swim.', 'He cans swim.', 'He can swim.', 'He can swimming.'], answer: 2 },
+  { q: 'I have lived here ___ three years.', options: ['since', 'for', 'from', 'during'], answer: 1 },
+  { q: 'This book is ___ than that one.', options: ['interesting', 'more interesting', 'most interesting', 'the more interesting'], answer: 1 },
+  { q: 'They ___ dinner when I arrived.', options: ['have', 'had', 'were having', 'are having'], answer: 2 },
+  { q: 'You ___ wear a seat belt. It is the law.', options: ['might', 'must', 'would', 'could'], answer: 1 },
+  { q: 'If it rains tomorrow, we ___ at home.', options: ['stayed', 'would stay', 'will stay', 'stay yesterday'], answer: 2 },
+  { q: 'I have never ___ sushi before.', options: ['eat', 'ate', 'eaten', 'eating'], answer: 2 },
+  { q: 'The letters ___ yesterday.', options: ['sent', 'were sent', 'are sending', 'have send'], answer: 1 },
+  { q: 'If I had more free time, I ___ a new language.', options: ['learn', 'will learn', 'would learn', 'would have learned'], answer: 2 },
+  { q: 'She asked me where I ___.', options: ['live', 'did I live', 'lived', 'do I live'], answer: 2 },
+  { q: 'Despite ___ tired, he finished the project.', options: ['be', 'was', 'being', 'been'], answer: 2 },
+  { q: 'By the time we arrived, the film ___.', options: ['already started', 'has already started', 'had already started', 'was already start'], answer: 2 },
+  { q: 'If they had left earlier, they ___ the train.', options: ['would catch', 'would have caught', 'will catch', 'had caught'], answer: 1 },
+  { q: 'The new bridge ___ by the end of next year.', options: ['will complete', 'will have completed', 'will have been completed', 'has been completing'], answer: 2 },
+  { q: 'Hardly ___ the room when the phone rang.', options: ['I had entered', 'had I entered', 'I entered', 'did I entered'], answer: 1 },
+  { q: 'Were it not for her advice, I ___ the wrong decision.', options: ['would make', 'will make', 'would have made', 'made'], answer: 2 },
 ];
 
 function App() {
@@ -32,7 +47,7 @@ function App() {
     else setTestFinished(true);
   };
   const score = answers.reduce((total, answer, i) => total + (answer === questions[i].answer ? 1 : 0), 0);
-  const level = score <= 1 ? 'A1 — Beginner' : score <= 2 ? 'A2 — Elementary' : score <= 3 ? 'B1 — Intermediate' : score === 4 ? 'B2 — Upper-intermediate' : 'B2+ — Strong result';
+  const level = score <= 5 ? 'A1 — Beginner' : score <= 10 ? 'A2 — Elementary' : score <= 15 ? 'B1 — Intermediate' : score <= 18 ? 'B2 — Upper-intermediate' : 'B2 — Strong result';
 
   return (
     <div className="app-shell">
@@ -115,7 +130,7 @@ function App() {
             <h2>{questions[questionIndex].q}</h2><p className="test-help">To‘g‘ri javobni tanlang.</p>
             <div className="answer-list">{questions[questionIndex].options.map((option, i) => <button key={option} className={answers[questionIndex] === i ? 'answer-option selected' : 'answer-option'} onClick={() => chooseAnswer(i)}><span>{String.fromCharCode(65 + i)}</span>{option}{answers[questionIndex] === i && <CheckCircle2 size={18}/>}</button>)}</div>
             <button className="button-primary test-next" disabled={answers[questionIndex] === undefined} onClick={nextQuestion}>{questionIndex === questions.length - 1 ? 'Natijani ko‘rish' : 'Keyingi savol'} <ArrowRight size={17}/></button>
-          </> : <div className="test-result"><div className="result-icon"><GraduationCap size={32}/></div><span className="test-kicker">TEST YAKUNLANDI</span><h2>Sizning taxminiy natijangiz</h2><div className="result-level">{level}</div><p>Siz {questions.length} ta savoldan {score} tasiga to‘g‘ri javob berdingiz.</p><div className="result-note">Bu qisqa demo-test rasmiy CEFR yoki IELTS baholashi emas. Aniqroq darajani bilish uchun kengroq test kerak bo‘ladi.</div><button className="button-primary test-next" onClick={() => setTestOpen(false)}>Davom etish <ArrowRight size={17}/></button><button className="restart-link" onClick={startTest}>Testni qayta ishlash</button></div>}
+          </> : <div className="test-result"><div className="result-icon"><GraduationCap size={32}/></div><span className="test-kicker">TEST YAKUNLANDI</span><h2>Sizning taxminiy natijangiz</h2><div className="result-level">{level}</div><p>Siz {questions.length} ta savoldan {score} tasiga to‘g‘ri javob berdingiz.</p><div className="result-note">Bu 20 savollik boshlang‘ich test asosan grammatika va lug‘atni tekshiradi. Natija taxminiy: u rasmiy CEFR yoki IELTS bahosi emas va Listening, Speaking, Reading hamda Writing ko‘nikmalarini to‘liq o‘lchamaydi.</div><button className="button-primary test-next" onClick={() => setTestOpen(false)}>Davom etish <ArrowRight size={17}/></button><button className="restart-link" onClick={startTest}>Testni qayta ishlash</button></div>}
         </div>
       </div>}
     </div>
