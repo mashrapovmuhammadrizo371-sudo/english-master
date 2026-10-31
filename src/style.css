@@ -26,3 +26,39 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a69f
   .test-navigation .test-next{width:100%}
   .test-back{width:100%}
 }
+
+
+/* Personalized study plan and first lesson */
+.study-modal{width:min(100%,590px)}
+.study-hero{display:flex;align-items:center;gap:15px;margin-top:22px}
+.study-hero .result-icon{flex-shrink:0;margin:0;width:54px;height:54px;border-radius:16px}
+.study-hero h2{margin:5px 0 3px;font-size:21px}
+.study-hero p,.lesson-intro{font-size:11px;line-height:1.7;color:#7a8294;margin:0}
+.study-level-tag{display:inline-block;padding:6px 9px;background:#f0edff;color:#6559df;border-radius:7px;font-size:9px;font-weight:800;letter-spacing:.7px}
+.study-notice{margin-top:18px;padding:12px 14px;background:#f8f7ff;border:1px solid #eeebff;border-radius:11px;color:#727b90;font-size:10px;line-height:1.7}
+.study-section-title{font-family:Manrope,sans-serif;font-size:14px;margin:22px 0 11px}
+.study-day-list{display:grid;gap:8px}
+.study-day{display:flex;align-items:center;gap:11px;border:1px solid #eceef5;border-radius:12px;padding:11px 12px}
+.study-day.completed{border-color:#b8e8d6;background:#f5fcf9}
+.study-day-number{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#f0edff;color:#7165e8;font-size:11px;font-weight:800;flex-shrink:0}
+.study-day.completed .study-day-number{background:#dff7ed;color:#269b71}
+.study-day>div{flex:1;min-width:0}
+.study-day b,.study-day small{display:block}
+.study-day b{font-size:11px;color:#354059}
+.study-day small{font-size:9px;color:#8a91a2;margin-top:4px}
+.study-day-status{font-size:9px;color:#7165e8;font-weight:700;white-space:nowrap}
+.lesson-title{margin-top:17px!important}
+.vocab-list{display:grid;gap:8px;margin-top:18px}
+.vocab-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid #eceef5;border-radius:11px}
+.vocab-item>div{width:95px;flex-shrink:0}
+.vocab-item b,.vocab-item small{display:block}
+.vocab-item b{font-size:12px;color:#665bd7}
+.vocab-item small{font-size:10px;color:#8a91a2;margin-top:3px}
+.vocab-item p{margin:0;font-size:10px;line-height:1.6;color:#59637a}
+.lesson-question{margin-top:17px;border:1px solid #e9ebf3;border-radius:12px;padding:14px;display:grid;gap:8px}
+.lesson-question>b{font-size:11px;line-height:1.7;color:#354059;margin-bottom:3px}
+.lesson-question .answer-option{min-height:40px;padding:10px 12px}
+.lesson-feedback{margin:3px 0 0;font-size:11px;font-weight:700}
+.lesson-feedback.correct{color:#23996f}
+.lesson-feedback.incorrect{color:#d46d55}
+@media(max-width:680px){.study-modal{padding:28px 18px}.study-day{padding:10px}.study-day-status{font-size:8px}.vocab-item{align-items:flex-start;flex-direction:column;gap:5px}.vocab-item>div{width:auto;display:flex;align-items:center;gap:9px}.vocab-item small{margin-top:0}}
