@@ -62,3 +62,45 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a69f
 .lesson-feedback.correct{color:#23996f}
 .lesson-feedback.incorrect{color:#d46d55}
 @media(max-width:680px){.study-modal{padding:28px 18px}.study-day{padding:10px}.study-day-status{font-size:8px}.vocab-item{align-items:flex-start;flex-direction:column;gap:5px}.vocab-item>div{width:auto;display:flex;align-items:center;gap:9px}.vocab-item small{margin-top:0}}
+
+
+/* Daily practice, vocabulary tracker and English practice demo */
+.practice-section{max-width:1144px;margin:0 auto;padding:25px 0 100px}
+.practice-section .section-heading{margin-bottom:35px}
+.practice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.practice-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:10px;padding:24px;border:1px solid #eceef5;border-radius:18px;background:#fff;min-height:190px;transition:transform .2s,box-shadow .2s}
+.practice-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px #17213a0b}
+.practice-icon,.summary-icon{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;background:#f0edff;color:#7065e8}
+.practice-card>b{font-family:Manrope,sans-serif;font-size:15px;color:#17213a;margin-top:3px}
+.practice-card>small{font-size:11px;line-height:1.6;color:#858c9d}
+.practice-action{display:flex;align-items:center;gap:7px;margin-top:auto;font-size:11px;font-weight:800;color:#7165e8}
+.progress-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.progress-summary>div{display:flex;align-items:center;gap:12px;padding:17px;border:1px solid #eceef5;border-radius:15px;background:#fbfbfe}
+.progress-summary small,.progress-summary b{display:block}
+.progress-summary small{font-size:10px;color:#858c9d;margin-bottom:5px}
+.progress-summary b{font-family:Manrope,sans-serif;font-size:17px;color:#17213a}
+.daily-prompt{display:flex;flex-direction:column;gap:8px;padding:18px;background:#f8f7ff;border:1px solid #eeebff;border-radius:13px;margin-top:22px}
+.daily-prompt b{font-family:Manrope,sans-serif;font-size:16px;color:#5148bd}
+.daily-prompt span{font-size:12px;color:#727b90}
+.daily-task{padding:15px 2px 0}
+.daily-task>b{font-size:12px}
+.daily-task p{font-size:12px;line-height:1.8;color:#727b90}
+.smart-vocab-list{display:grid;gap:10px;margin-top:20px}
+.smart-vocab-item{position:relative;padding:15px;border:1px solid #e9ebf3;border-radius:13px}
+.smart-vocab-item.learned{background:#f5fcf8;border-color:#bce8d3}
+.vocab-top{display:flex;justify-content:space-between;align-items:center}
+.vocab-top b{font-family:Manrope,sans-serif;font-size:15px}
+.vocab-top span{padding:4px 7px;background:#f0edff;border-radius:6px;color:#7165e8;font-size:9px;font-weight:800}
+.smart-vocab-item p{font-size:12px;color:#4d5870;margin:7px 0}
+.smart-vocab-item>small{display:block;font-size:11px;color:#858c9d;padding-right:90px}
+.vocab-mark{position:absolute;right:12px;bottom:12px;border:1px solid #e6e5f5;background:#fff;border-radius:8px;padding:8px 10px;color:#7165e8;font-size:10px;font-weight:800}
+.smart-vocab-item.learned .vocab-mark{color:#25825e;border-color:#bce8d3}
+.tutor-input{display:block;width:100%;resize:vertical;border:1px solid #e2e5ef;border-radius:12px;padding:13px;margin-top:20px;font:inherit;font-size:13px;line-height:1.7;color:#26314a;outline:none}
+.tutor-input:focus{border-color:#8b81ef;box-shadow:0 0 0 3px #7165e815}
+.tutor-examples{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.tutor-examples button{border:1px solid #e7e5f8;border-radius:8px;background:#faf9ff;padding:7px 9px;color:#7165e8;font-size:10px}
+.tutor-feedback{margin-top:16px;padding:14px;border:1px solid #bce8d3;background:#f3fbf7;border-radius:12px}
+.tutor-feedback b{font-size:12px;color:#267653}
+.tutor-feedback p{font-size:12px;line-height:1.8;color:#466b5b;margin:7px 0 0}
+@media(max-width:900px){.practice-section{margin-left:22px;margin-right:22px}}
+@media(max-width:680px){.practice-section{padding:0 0 65px;margin-left:20px;margin-right:20px}.practice-grid{grid-template-columns:1fr;gap:11px}.practice-card{min-height:155px;padding:20px}.progress-summary{grid-template-columns:1fr;gap:9px}.progress-summary>div{padding:13px}.smart-vocab-item>small{padding-right:0;padding-bottom:32px}.vocab-mark{bottom:9px}.tutor-examples button{flex:1}}
