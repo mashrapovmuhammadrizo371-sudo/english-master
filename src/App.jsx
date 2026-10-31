@@ -143,7 +143,8 @@ function App() {
             <h1>Ingliz tilingizni<br /> <span>maqsad bilan</span> o‘rganing.</h1>
             <p className="hero-description">CEFR va IELTS imtihonlariga tayyorgarlikni o‘z darajangizdan boshlang. Bilimingizni tekshiring, yo‘lingizni belgilang va bosqichma-bosqich rivojlaning.</p>
             <div className="hero-actions">
-              <button className="button-primary" onClick={startTest}>Bepul daraja testi <ArrowRight size={18} /></button>
+              <button className="button-primary" onClick={startTest}>Grammar testi <ArrowRight size={18} /></button>
+              <button className="button-reading" onClick={startReading}><BookOpen size={17} /> Reading testi</button>
               <a className="button-quiet" href="#features"><span className="play-icon">↗</span> Platformani ko‘rish</a>
             </div>
             <div className="trust-row"><span><CheckCircle2 size={16} /> Boshlash bepul</span><span><CheckCircle2 size={16} /> O‘z darajangizdan</span><span><CheckCircle2 size={16} /> IELTS & CEFR</span></div>
