@@ -1,0 +1,68 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json; charset=utf-8",
+};
+
+const json = (body, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: corsHeaders });
+
+const assessmentPrompts = {
+  writing: "Assess this English writing using CEFR-informed criteria: task achievement, coherence, vocabulary, grammar. Give a cautious estimated level, scores out of 5 for each criterion, corrections with explanations in Uzbek, and an improved example. Do not claim official certification.",
+  speaking: "Assess this English speaking sample using CEFR-informed criteria: task response, fluency (only if audio supports it), vocabulary, grammar, and pronunciation (only if audio supports it). Give a cautious estimated level, criterion scores out of 5, useful feedback in Uzbek, and 3 next steps. Do not claim official certification.",
+  test: "Check the learner's test answers against the supplied questions and answer key. Return score, correct/incorrect items, explanations in Uzbek, and suggestions. If no answer key is supplied, say that and assess only what can be reliably checked.",
+  task: "Assess whether the learner's response fulfils the supplied task instructions. Check completeness, relevance, clarity, language quality, and missing requirements. Give an estimated CEFR level only if there is enough English evidence, explain feedback in Uzbek, and suggest improvements. Do not claim official certification.",
+};
+
+export default {
+  async fetch(request, env) {
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+    if (request.method !== "POST") return json({ error: "Faqat POST so‘rovi qabul qilinadi." }, 405);
+    if (!env.GEMINI_API_KEY) return json({ error: "Gemini API kaliti serverda sozlanmagan." }, 500);
+
+    try {
+      const body = await request.json();
+      const { type, content, instructions = "", answerKey = "", audioBase64 = "", audioMimeType = "" } = body || {};
+      if (!Object.hasOwn(assessmentPrompts, type)) return json({ error: "Tekshiruv turi noto‘g‘ri." }, 400);
+      if ((!content || !String(content).trim()) && !audioBase64) return json({ error: "Tekshirish uchun javob yoki audio yuboring." }, 400);
+      if (String(content || "").length > 20000) return json({ error: "Matn juda uzun. 20 000 belgidan qisqa matn yuboring." }, 413);
+      if (audioBase64 && (!audioMimeType || !["audio/webm", "audio/wav", "audio/mp3", "audio/mpeg", "audio/mp4", "audio/m4a", "audio/ogg", "audio/aac", "audio/flac"].includes(audioMimeType))) {
+        return json({ error: "Audio formati qo‘llab-quvvatlanmaydi." }, 400);
+      }
+      if (audioBase64 && audioBase64.length > 12_000_000) return json({ error: "Audio fayl juda katta. Kichikroq audio yuboring." }, 413);
+
+      const parts = [{
+        text: [
+          assessmentPrompts[type],
+          "Return the feedback in clear Uzbek, using JSON with keys: estimatedLevel, summary, criteria (array of {name, scoreOutOf5, feedback}), corrections (array of {original, corrected, explanation}), strengths (array), nextSteps (array), score (number or null). Use only the keys relevant to the task. Keep feedback supportive and honest.",
+          instructions ? "TASK INSTRUCTIONS:\n" + String(instructions).slice(0, 5000) : "",
+          answerKey ? "ANSWER KEY:\n" + String(answerKey).slice(0, 5000) : "",
+          content ? "LEARNER RESPONSE:\n" + String(content) : "",
+        ].filter(Boolean).join("\n\n"),
+      }];
+      if (audioBase64) parts.push({ inline_data: { mime_type: audioMimeType, data: audioBase64 } });
+
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        return json({ error: response.status === 429 ? "API so‘rovlari limiti tugagan yoki vaqtincha ko‘p so‘rov yuborilgan." : "Gemini API so‘rovini bajara olmadi. API sozlamalarini tekshiring." }, response.status === 429 ? 429 : 502);
+      }
+      const output = result?.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("").trim();
+      if (!output) return json({ error: "AI javob qaytarmadi. Qayta urinib ko‘ring." }, 502);
+      let assessment;
+      try { assessment = JSON.parse(output); }
+      catch { return json({ error: "AI natijasini o‘qib bo‘lmadi. Qayta urinib ko‘ring." }, 502); }
+      return json({ assessment });
+    } catch {
+      return json({ error: "So‘rovni tekshirib, qayta urinib ko‘ring." }, 400);
+    }
+  },
+};
