@@ -68,7 +68,7 @@ export default {
           Authorization: "Bearer " + env.GROQ_API_KEY,
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "llama-3.1-8b-instant",
           messages: [
             { role: "system", content: "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
             { role: "user", content: prompt },
@@ -87,7 +87,7 @@ export default {
             : response.status === 400
               ? "Groq so‘rovini qabul qilmadi. Model yoki yuborilgan ma’lumotni tekshirish kerak."
               : "Groq API hozir javob bermadi. Keyinroq qayta urinib ko‘ring.";
-        return json({ error: safeError, ...(providerMessage ? { detail: providerMessage.slice(0, 240) } : {}) }, response.status === 429 ? 429 : 502);
+        return json({ error: safeError, providerStatus: response.status, ...(providerMessage ? { detail: providerMessage.slice(0, 240) } : {}) }, response.status === 429 ? 429 : 502);
       }
       const output = result?.choices?.[0]?.message?.content?.trim();
       if (!output) return json({ error: "AI javob qaytarmadi. Qayta urinib ko‘ring." }, 502);
