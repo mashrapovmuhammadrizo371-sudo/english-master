@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Assessment from './Assessment.jsx';
+import BrandMark from './BrandMark.jsx';
+import BrandHero from './BrandHero.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
 const readingPassages = [
@@ -280,9 +282,9 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#home" aria-label="English Master home">
-          <span className="brand-mark"><GraduationCap size={23} /></span>
-          <span>english<span className="brand-accent">master</span><small>IELTS & CEFR PREPARATION</small></span>
+        <a className="brand em-brand" href="#home" aria-label="English Master home">
+          <BrandMark />
+          <span className="em-brand__name">English <b>Master</b></span>
         </a>
         <button className="menu-toggle" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Menu">{mobileMenu ? <X /> : <Menu />}</button>
         <nav className={mobileMenu ? 'nav-links nav-open app-navigation' : 'nav-links app-navigation'} aria-label="Asosiy navigatsiya">
@@ -297,7 +299,8 @@ function App() {
       </header>
 
       <main id="home" className="app-pages" data-page={activePage}>
-        <section className="hero">
+        {activePage === 'home' && <BrandHero />}
+        <section className="hero" id="em-start">
           <div className="hero-copy">
             <div className="eyebrow"><Sparkles size={15} /> INGLIZ TILINI YANGI BOSQICHGA OLIB CHIQING</div>
             <h1>Ingliz tilingizni<br /> <span>maqsad bilan</span> o‘rganing.</h1>
