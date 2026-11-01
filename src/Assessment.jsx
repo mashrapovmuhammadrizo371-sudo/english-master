@@ -52,7 +52,7 @@ export default function Assessment({ onClose }) {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Tekshirish amalga oshmadi.');
+      if (!response.ok) { const detail = data.detail ? ` (Groq ${data.providerStatus || response.status}: ${data.detail})` : data.providerStatus ? ` (HTTP ${data.providerStatus})` : ''; throw new Error((data.error || 'Tekshirish amalga oshmadi.') + detail); }
       setResult(data.assessment);
     } catch (err) {
       setError(err.message || 'Ulanishda xatolik. Keyinroq qayta urinib ko‘ring.');
