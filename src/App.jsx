@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Assessment from './Assessment.jsx';
+import BrandMark from './BrandMark.jsx';
+import BrandHero from './BrandHero.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
 const readingPassages = [
@@ -271,18 +273,18 @@ function App() {
 
 
   if (authChecking) {
-    return <div className="auth-screen"><div className="auth-card"><div className="auth-mark"><GraduationCap size={28}/></div><span className="auth-kicker">ENGLISH MASTER</span><h1>Hisobingiz tekshirilmoqda</h1><p>Google hisobingiz xavfsiz tekshirilmoqda…</p><div className="auth-loading-line"></div></div></div>;
+    return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>Hisobingiz tekshirilmoqda</h1><p>Google hisobingiz xavfsiz tekshirilmoqda…</p><div className="auth-loading-line"></div></div></div>;
   }
   if (!authUser) {
-    return <div className="auth-screen"><div className="auth-card"><div className="auth-mark"><GraduationCap size={28}/></div><span className="auth-kicker">ENGLISH MASTER</span><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
+    return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
   }
 
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#home" aria-label="English Master home">
-          <span className="brand-mark"><GraduationCap size={23} /></span>
-          <span>english<span className="brand-accent">master</span><small>IELTS & CEFR PREPARATION</small></span>
+        <a className="brand em-brand" href="#home" aria-label="English Master home">
+          <BrandMark />
+          <span className="em-brand__name">English <b>Master</b></span>
         </a>
         <button className="menu-toggle" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Menu">{mobileMenu ? <X /> : <Menu />}</button>
         <nav className={mobileMenu ? 'nav-links nav-open app-navigation' : 'nav-links app-navigation'} aria-label="Asosiy navigatsiya">
@@ -297,7 +299,8 @@ function App() {
       </header>
 
       <main id="home" className="app-pages" data-page={activePage}>
-        <section className="hero">
+        {activePage === 'home' && <BrandHero />}
+        <section className="hero" id="em-start">
           <div className="hero-copy">
             <div className="eyebrow"><Sparkles size={15} /> INGLIZ TILINI YANGI BOSQICHGA OLIB CHIQING</div>
             <h1>Ingliz tilingizni<br /> <span>maqsad bilan</span> o‘rganing.</h1>
@@ -360,7 +363,7 @@ function App() {
 
         <section className="bottom-cta" id="about"><div><span className="eyebrow">ENGLISH MASTER</span><h2>Kelajakdagi ingliz tilingiz<br />bugungi qadamingizdan boshlanadi.</h2></div><button className="button-light" onClick={startReading}>Reading testini boshlash <ArrowRight size={18}/></button></section>
       </main>
-      <footer><a className="footer-brand" href="#home">english<span>master</span></a><p>IELTS & CEFR Preparation Platform</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
+      <footer className="em-footer"><a className="footer-brand em-footer__brand" href="#home" aria-label="English Master home"><BrandMark className="em-footer__mark" /><span>ENGLISH <b>MASTER</b></span></a><p className="em-footer__quote">Your Future Speaks English.</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
 
       {isAdmin && bossOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="BOSS AI Control Center"><div className="test-modal boss-modal"><button className="modal-close" onClick={() => setBossOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · AI CONTROL CENTER</div><div className="result-icon"><Sparkles size={28}/></div><h2>👑 BOSS AI</h2><p className="lesson-intro">4 ta AI mutaxassis vazifani alohida tahlil qiladi. BOSS AI natijalarni birlashtirib, yagona tavsiya beradi.</p><div className="boss-team-grid"><div><b>💡 AI Innovator</b><small>Yangi g‘oyalar</small></div><div><b>🎨 AI Designer</b><small>Dizayn takliflari</small></div><div><b>🏗️ AI Builder</b><small>Funksiya rejasi</small></div><div><b>🔍 AI Analyst</b><small>Tahlil va ustuvorlik</small></div></div><div className="boss-chat-history">{bossMessages.map((message,index)=><div className={message.role==='user'?'tutor-chat-bubble user':'tutor-chat-bubble assistant'} key={index}><b>{message.role==='user'?'Siz':'👑 BOSS AI'}</b><p>{message.content}</p></div>)}{bossBusy && <div className="tutor-chat-bubble assistant"><p>4 ta AI ishlayapti, BOSS natijalarni birlashtirmoqda…</p></div>}</div><textarea className="tutor-input" value={bossInput} onChange={e=>setBossInput(e.target.value)} placeholder="Masalan: Saytga yangi Speaking bo‘limi uchun g‘oya ber…" rows="3" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitBossTask();}}}/><button className="button-primary test-next" disabled={!bossInput.trim()||bossBusy} onClick={submitBossTask}>{bossBusy?'AI jamoasi ishlayapti…':'Jamoaga topshiriq berish'} <ArrowRight size={16}/></button><div className="result-note">AI tavsiya va reja beradi; hozircha sayt kodini avtomatik o‘zgartirmaydi.</div></div></div>}
       {assessmentOpen && <Assessment onClose={() => setAssessmentOpen(false)} />}

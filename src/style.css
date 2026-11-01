@@ -175,3 +175,66 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a69f
 .auth-user-chip img,.auth-user-chip>span{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#eeeaff;display:grid;place-items:center}
 .auth-user-chip button{border:0;background:transparent;color:#7666d6;font-weight:700;cursor:pointer;padding:6px}
 @media(max-width:760px){.auth-user-chip{margin:8px 0 0;justify-content:flex-end}.auth-user-chip b{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.auth-card{padding:32px 20px}.auth-card h1{font-size:25px}}
+
+
+/* ------------------------------------------------------------------
+   ENGLISH MASTER brand extension — login, learning UI and footer.
+   Scoped overrides: preserve all auth, navigation and learning behavior.
+------------------------------------------------------------------ */
+:root{
+  --navy:#0A1230;
+  --em-accent:#315CDE;
+  --em-accent-soft:#EEF3FF;
+}
+.auth-screen{
+  background:
+    radial-gradient(circle at 15% 10%,rgba(61,107,255,.24),transparent 35%),
+    radial-gradient(circle at 88% 88%,rgba(228,196,111,.12),transparent 32%),
+    linear-gradient(135deg,var(--em-navy-800),var(--em-navy-900) 58%,var(--em-navy-950));
+}
+.auth-card{
+  border:1px solid rgba(143,174,255,.28);
+  box-shadow:0 24px 80px rgba(3,9,29,.34),0 0 0 1px rgba(255,255,255,.3) inset;
+}
+.auth-brand-lockup{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto 22px}
+.auth-brand-mark{width:58px;height:58px;filter:drop-shadow(0 8px 20px rgba(61,107,255,.24))}
+.auth-brand-lockup .auth-kicker{
+  color:var(--em-navy-900);font-family:var(--em-font-display);
+  font-size:12px;font-weight:800;letter-spacing:.16em
+}
+.auth-brand-quote{
+  color:#9A7A2F;font-family:var(--em-font-serif);font-style:italic;
+  font-size:17px;line-height:1.35
+}
+.auth-card h1{color:var(--em-navy-900)}
+.auth-mark{background:var(--em-accent-soft);color:var(--em-accent)}
+.auth-loading-line{background:linear-gradient(90deg,var(--em-royal-500),var(--em-gold-400))}
+.button-primary,.nav-cta{background:var(--em-royal-500);box-shadow:0 9px 22px rgba(61,107,255,.20)}
+.button-primary:hover,.nav-cta:hover{background:#2854D8}
+.eyebrow,.text-link,.brand-accent{color:var(--em-royal-500)}
+.nav-links>a:hover,.nav-page.active{color:var(--em-royal-500)}
+.feature-icon.icon-violet,.stat-icon,.card-icon,.result-icon{
+  background:#EEF3FF;color:var(--em-royal-500)
+}
+.icon-orange{background:#FBF5E8;color:#B58B32}
+.button-reading{border-color:#DCE5FF;background:#F3F6FF;color:var(--em-royal-500)}
+.answer-option.selected{border-color:#8FAEFF;background:#F3F6FF;color:var(--em-navy-800)}
+.answer-option.selected>span{background:var(--em-royal-500);color:#fff}
+.test-progress span,.progress-line span{background:var(--em-royal-500)}
+.test-kicker,.result-level{color:var(--em-royal-500)}
+.em-footer{
+  border-top:1px solid #E8ECF6;padding-top:22px;
+  align-items:center
+}
+.em-footer__brand{display:inline-flex;align-items:center;gap:9px;color:var(--em-navy-900)}
+.em-footer__mark{width:30px;height:30px;flex:0 0 auto}
+.em-footer__brand span{font-family:var(--em-font-display);font-size:13px;letter-spacing:.09em}
+.em-footer__brand b{color:var(--em-royal-500)}
+.em-footer__quote{
+  color:#9A7A2F;font-family:var(--em-font-serif);font-style:italic;
+  font-size:14px;white-space:nowrap
+}
+@media(max-width:680px){
+  .em-footer{gap:12px;padding-top:18px}
+  .em-footer__quote{order:3;width:100%;white-space:normal}
+}
