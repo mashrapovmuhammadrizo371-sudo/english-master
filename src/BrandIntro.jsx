@@ -56,7 +56,8 @@ export default function BrandIntro({ onComplete }) {
     if (started.current) return;
     started.current = true;
     playWhooshAndChime();
-    const timer = window.setTimeout(onComplete, 2700);
+    // Let the logo roll in, grow, reveal the wordmark, then hold the finished frame for 3 seconds.
+    const timer = window.setTimeout(onComplete, 6100);
     return () => window.clearTimeout(timer);
   }, [onComplete]);
 
@@ -64,8 +65,8 @@ export default function BrandIntro({ onComplete }) {
     <main className="em-intro" aria-label="English Master intro">
       <div className="em-intro__scene">
         <div className="em-intro__line" aria-hidden="true" />
-        <div className="em-intro__mark-wrap"><BrandMark className="em-intro__mark" /></div>
         <div className="em-intro__wordmark"><span>ENGLISH</span><b>MASTER</b></div>
+        <div className="em-intro__mark-wrap"><BrandMark className="em-intro__mark" /></div>
         <p className="em-intro__tagline">Your Future Speaks English.</p>
       </div>
     </main>
