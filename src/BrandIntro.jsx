@@ -56,8 +56,8 @@ export default function BrandIntro({ onComplete }) {
     if (started.current) return;
     started.current = true;
     playWhooshAndChime();
-    // Let the logo roll in, grow, reveal the wordmark, then hold the finished frame for 3 seconds.
-    const timer = window.setTimeout(onComplete, 6100);
+    // Move on as soon as the logo, collapsing line, wordmark, and tagline finish.
+    const timer = window.setTimeout(onComplete, 4200);
     return () => window.clearTimeout(timer);
   }, [onComplete]);
 
