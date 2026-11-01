@@ -137,6 +137,7 @@ function App() {
         cancel_on_tap_outside: false
       });
       window.google.accounts.id.renderButton(googleButtonRef.current, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: 300, locale: 'uz' });
+      window.google.accounts.id.prompt(); // Try One Tap / automatic Google sign-in after the intro.
     };
     if (window.google?.accounts?.id) initializeGoogle();
     else {
