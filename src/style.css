@@ -124,3 +124,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a69f
 .tutor-chat-actions { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
 .tutor-chat-actions .test-next { margin-top:0; }
 @media(max-width:560px) { .tutor-chat-history { max-height:260px; } .tutor-chat-actions>* { flex:1; } }
+
+
+/* Separate app screens; preserve the existing visual design and section contents */
+.app-navigation .nav-page{border:0;background:transparent;padding:10px 0;color:#5f687c;font:inherit;font-size:13px;font-weight:600;white-space:nowrap}
+.app-navigation .nav-page:hover,.app-navigation .nav-page.active{color:#7065e8}
+.app-navigation .nav-page.active{position:relative}
+.app-navigation .nav-page.active:after{content:'';position:absolute;left:0;right:0;bottom:1px;height:2px;background:#7065e8;border-radius:2px}
+.app-pages[data-page='lessons']>.hero,.app-pages[data-page='lessons']>.stats-strip,.app-pages[data-page='lessons']>.path-section,.app-pages[data-page='lessons']>.practice-section,.app-pages[data-page='lessons']>.bottom-cta,
+.app-pages[data-page='tests']>.hero,.app-pages[data-page='tests']>.stats-strip,.app-pages[data-page='tests']>.practice-section,.app-pages[data-page='tests']>.bottom-cta,
+.app-pages[data-page='profile']>.hero,.app-pages[data-page='profile']>.stats-strip,.app-pages[data-page='profile']>.features-section,.app-pages[data-page='profile']>.path-section,.app-pages[data-page='profile']>.bottom-cta,
+.app-pages[data-page='tutor']>.hero,.app-pages[data-page='tutor']>.stats-strip,.app-pages[data-page='tutor']>.features-section,.app-pages[data-page='tutor']>.path-section,.app-pages[data-page='tutor']>.practice-section,.app-pages[data-page='tutor']>.bottom-cta{display:none}
+.app-pages[data-page='lessons']>.features-section{padding-top:55px}
+.app-pages[data-page='tests']>.features-section{padding-top:55px;padding-bottom:45px}
+.app-pages[data-page='tests']>.path-section{margin-top:0}
+.app-pages[data-page='profile']>.practice-section{padding-top:55px}
+.app-pages[data-page='tutor']{min-height:35vh}
+@media(max-width:680px){.app-navigation .nav-page{text-align:left;padding:4px 0;font-size:14px}.app-navigation .nav-page.active:after{left:auto;right:0;top:0;bottom:0;width:3px;height:auto}.app-pages[data-page='lessons']>.features-section,.app-pages[data-page='tests']>.features-section,.app-pages[data-page='profile']>.practice-section{padding-top:35px}}
