@@ -33,6 +33,7 @@
 .em-welcome__hero h1 span { background:linear-gradient(100deg,#c4d2ff,#7fa0ff 56%,#e4c46f 115%);background-clip:text;-webkit-background-clip:text;color:transparent; }
 .em-welcome__quote { margin:18px 0 0;color:#f1e3b8;font-family:Georgia,serif;font-style:italic;font-size:clamp(1.2rem,3vw,1.8rem); }
 .em-welcome__description { max-width:620px;margin:18px auto 28px;color:#b9c4e3;line-height:1.8;font-size:clamp(.97rem,2vw,1.08rem); }
+.em-welcome__action { max-width:850px;margin:38px auto 0;text-align:center; }
 .em-welcome__cta { width:min(100%,620px);min-height:78px;padding:18px 25px;border:1px solid rgba(255,255,255,.2);border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 auto;color:#fff;font-size:clamp(1rem,2.6vw,1.28rem);font-weight:800;text-align:left;cursor:pointer;background:linear-gradient(105deg,#315cf2 0%,#4a65ee 48%,#7356df 100%);box-shadow:0 16px 42px rgba(45,83,220,.28),inset 0 1px 0 rgba(255,255,255,.2);transition:transform .2s,box-shadow .2s,filter .2s; }
 .em-welcome__cta span { flex:1; }
 .em-welcome__cta svg { flex:0 0 auto;transition:transform .2s; }
@@ -55,6 +56,7 @@
   .em-welcome__account { font-size:.76rem; }
   .em-welcome__account img { width:28px;height:28px; }
   .em-welcome__hero { padding-top:45px; }
+  .em-welcome__action { margin-top:30px; }
   .em-welcome__cta { min-height:72px;padding:16px;border-radius:12px; }
   .em-welcome__features { grid-template-columns:1fr;gap:10px;margin-top:26px; }
   .em-welcome__features article { display:grid;grid-template-columns:44px 1fr;column-gap:13px;padding:16px; }
