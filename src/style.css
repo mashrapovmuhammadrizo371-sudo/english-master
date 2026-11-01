@@ -141,3 +141,5 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a69f
 .app-pages[data-page='profile']>.practice-section{padding-top:55px}
 .app-pages[data-page='tutor']{min-height:35vh}
 @media(max-width:680px){.app-navigation .nav-page{text-align:left;padding:4px 0;font-size:14px}.app-navigation .nav-page.active:after{left:auto;right:0;top:0;bottom:0;width:3px;height:auto}.app-pages[data-page='lessons']>.features-section,.app-pages[data-page='tests']>.features-section,.app-pages[data-page='profile']>.practice-section{padding-top:35px}}
+
+.app-pages[data-page='home']>.features-section,.app-pages[data-page='home']>.path-section,.app-pages[data-page='home']>.practice-section,.app-pages[data-page='home']>.bottom-cta{display:none}
