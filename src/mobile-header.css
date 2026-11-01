@@ -1,0 +1,96 @@
+/* Mobile header layout: keep the brand and menu on the first row, account on the second. */
+@media (max-width: 680px) {
+  .topbar {
+    position: relative;
+    height: auto;
+    min-height: 72px;
+    padding: 12px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 10px;
+  }
+
+  .topbar .brand {
+    min-width: 0;
+    gap: 9px;
+    font-size: 17px;
+  }
+
+  .topbar .brand > span:last-child {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .topbar .brand-mark {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+  }
+
+  .topbar .menu-toggle {
+    grid-column: 2;
+    grid-row: 1;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #eceaf7;
+    border-radius: 12px;
+    background: #faf9ff;
+  }
+
+  .topbar .app-navigation {
+    top: calc(100% + 4px);
+    left: 14px;
+    right: 14px;
+    width: auto;
+  }
+
+  .topbar .auth-user-chip {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    border-top: 1px solid #f0eff6;
+    font-size: 12px;
+  }
+
+  .topbar .auth-user-chip img,
+  .topbar .auth-user-chip > span {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+
+  .topbar .auth-user-chip b {
+    display: block;
+    min-width: 0;
+    max-width: calc(100vw - 150px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar .auth-user-chip button {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding: 8px 10px;
+    border: 1px solid #e9e6fb;
+    border-radius: 9px;
+    background: #faf9ff;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar { padding-left: 14px; padding-right: 14px; column-gap: 8px; }
+  .topbar .brand { font-size: 16px; }
+  .topbar .brand small { font-size: 7px; letter-spacing: .9px; }
+  .topbar .auth-user-chip b { max-width: calc(100vw - 135px); }
+}
