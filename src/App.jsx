@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Assessment from './Assessment.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
@@ -51,6 +51,27 @@ const readingPassages = [
 
 function App() {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [authUser, setAuthUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authError, setAuthError] = useState('');
+  const googleButtonRef = useRef(null);
+  const authApi = 'https://english-master-auth.mashrapovmuhammadrizo371.workers.dev/verify';
+  const verifyGoogleCredential = async (credential) => {
+    const response = await fetch(authApi, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok || !data.user) throw new Error(data.error || 'Google hisobni tekshirib bo‘lmadi.');
+    localStorage.setItem('em-auth-session', JSON.stringify({ credential, expiresAt: data.expiresAt, user: data.user }));
+    setAuthUser(data.user);
+    setAuthError('');
+    return data.user;
+  };
+  const signOut = () => {
+    localStorage.removeItem('em-auth-session');
+    setAuthUser(null);
+    setAuthError('');
+    if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
+  };
+
   const [activePage, setActivePage] = useState('home');
   const navigateTo = (page) => { setActivePage(page); setMobileMenu(false); if (page === 'tutor') setAiTutorOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const [readingOpen, setReadingOpen] = useState(false);
@@ -80,6 +101,52 @@ function App() {
   const [dailyDone, setDailyDone] = useState(localStorage.getItem('em-daily-done') === new Date().toDateString());
   const [dailyStats, setDailyStats] = useState(() => { try { return JSON.parse(localStorage.getItem('em-daily-stats') || '{"xp":0,"streak":0,"lastDay":""}'); } catch { return { xp: 0, streak: 0, lastDay: '' }; } });
   const [knownWords, setKnownWords] = useState(() => { try { return JSON.parse(localStorage.getItem('em-known-words') || '[]'); } catch { return []; } });
+  useEffect(() => {
+    let active = true;
+    const restoreSession = async () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('em-auth-session') || 'null');
+        if (saved?.credential && saved.expiresAt > Date.now()) await verifyGoogleCredential(saved.credential);
+        else localStorage.removeItem('em-auth-session');
+      } catch { localStorage.removeItem('em-auth-session'); }
+      finally { if (active) setAuthChecking(false); }
+    };
+    restoreSession();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (authChecking || authUser || !googleButtonRef.current) return;
+    let cancelled = false;
+    const initializeGoogle = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: '574848907767-gp77d9j9f7pb4ri1t9v06hq959vjs17c.apps.googleusercontent.com',
+        callback: async (response) => {
+          try { setAuthError(''); await verifyGoogleCredential(response.credential); }
+          catch (error) { setAuthError(error.message || 'Kirishda xatolik yuz berdi.'); }
+        },
+        auto_select: true,
+        cancel_on_tap_outside: false
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: 300, locale: 'uz' });
+    };
+    if (window.google?.accounts?.id) initializeGoogle();
+    else {
+      let script = document.getElementById('google-identity-services');
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'google-identity-services';
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+      script.addEventListener('load', initializeGoogle);
+    }
+    return () => { cancelled = true; };
+  }, [authChecking, authUser]);
+
   const vocabulary = [
     { word: 'improve', translation: 'yaxshilamoq', example: 'I want to improve my English.', level: 'A2' },
     { word: 'confident', translation: 'o‘ziga ishongan', example: 'I feel confident when I practise.', level: 'B1' },
@@ -182,6 +249,7 @@ function App() {
     setReadingFinished(false);
     setReadingOpen(true);
   };
+  const isAdmin = Boolean(authUser?.isAdmin);
   const readingScore = readingPassages.reduce((sum, passage, pIndex) => sum + passage.questions.reduce((n, question, qIndex) => {
     const value = readingAnswers[`${pIndex}-${qIndex}`];
     return n + (value !== undefined && String(value).trim().toLowerCase() === question.answer ? 1 : 0);
@@ -202,6 +270,13 @@ function App() {
   })();
 
 
+  if (authChecking) {
+    return <div className="auth-screen"><div className="auth-card"><div className="auth-mark"><GraduationCap size={28}/></div><span className="auth-kicker">ENGLISH MASTER</span><h1>Hisobingiz tekshirilmoqda</h1><p>Google hisobingiz xavfsiz tekshirilmoqda…</p><div className="auth-loading-line"></div></div></div>;
+  }
+  if (!authUser) {
+    return <div className="auth-screen"><div className="auth-card"><div className="auth-mark"><GraduationCap size={28}/></div><span className="auth-kicker">ENGLISH MASTER</span><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -215,9 +290,10 @@ function App() {
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
-          <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>
+          {isAdmin && <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>}
           <button className={activePage === 'profile' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('profile')}>Profil</button>
         </nav>
+        <div className="auth-user-chip">{authUser.picture ? <img src={authUser.picture} alt="" /> : <span>{(authUser.name || 'U').slice(0,1)}</span>}<b>{authUser.name}</b><button onClick={signOut}>Chiqish</button></div>
       </header>
 
       <main id="home" className="app-pages" data-page={activePage}>
@@ -286,7 +362,7 @@ function App() {
       </main>
       <footer><a className="footer-brand" href="#home">english<span>master</span></a><p>IELTS & CEFR Preparation Platform</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
 
-      {bossOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="BOSS AI Control Center"><div className="test-modal boss-modal"><button className="modal-close" onClick={() => setBossOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · AI CONTROL CENTER</div><div className="result-icon"><Sparkles size={28}/></div><h2>👑 BOSS AI</h2><p className="lesson-intro">4 ta AI mutaxassis vazifani alohida tahlil qiladi. BOSS AI natijalarni birlashtirib, yagona tavsiya beradi.</p><div className="boss-team-grid"><div><b>💡 AI Innovator</b><small>Yangi g‘oyalar</small></div><div><b>🎨 AI Designer</b><small>Dizayn takliflari</small></div><div><b>🏗️ AI Builder</b><small>Funksiya rejasi</small></div><div><b>🔍 AI Analyst</b><small>Tahlil va ustuvorlik</small></div></div><div className="boss-chat-history">{bossMessages.map((message,index)=><div className={message.role==='user'?'tutor-chat-bubble user':'tutor-chat-bubble assistant'} key={index}><b>{message.role==='user'?'Siz':'👑 BOSS AI'}</b><p>{message.content}</p></div>)}{bossBusy && <div className="tutor-chat-bubble assistant"><p>4 ta AI ishlayapti, BOSS natijalarni birlashtirmoqda…</p></div>}</div><textarea className="tutor-input" value={bossInput} onChange={e=>setBossInput(e.target.value)} placeholder="Masalan: Saytga yangi Speaking bo‘limi uchun g‘oya ber…" rows="3" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitBossTask();}}}/><button className="button-primary test-next" disabled={!bossInput.trim()||bossBusy} onClick={submitBossTask}>{bossBusy?'AI jamoasi ishlayapti…':'Jamoaga topshiriq berish'} <ArrowRight size={16}/></button><div className="result-note">AI tavsiya va reja beradi; hozircha sayt kodini avtomatik o‘zgartirmaydi.</div></div></div>}
+      {isAdmin && bossOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="BOSS AI Control Center"><div className="test-modal boss-modal"><button className="modal-close" onClick={() => setBossOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · AI CONTROL CENTER</div><div className="result-icon"><Sparkles size={28}/></div><h2>👑 BOSS AI</h2><p className="lesson-intro">4 ta AI mutaxassis vazifani alohida tahlil qiladi. BOSS AI natijalarni birlashtirib, yagona tavsiya beradi.</p><div className="boss-team-grid"><div><b>💡 AI Innovator</b><small>Yangi g‘oyalar</small></div><div><b>🎨 AI Designer</b><small>Dizayn takliflari</small></div><div><b>🏗️ AI Builder</b><small>Funksiya rejasi</small></div><div><b>🔍 AI Analyst</b><small>Tahlil va ustuvorlik</small></div></div><div className="boss-chat-history">{bossMessages.map((message,index)=><div className={message.role==='user'?'tutor-chat-bubble user':'tutor-chat-bubble assistant'} key={index}><b>{message.role==='user'?'Siz':'👑 BOSS AI'}</b><p>{message.content}</p></div>)}{bossBusy && <div className="tutor-chat-bubble assistant"><p>4 ta AI ishlayapti, BOSS natijalarni birlashtirmoqda…</p></div>}</div><textarea className="tutor-input" value={bossInput} onChange={e=>setBossInput(e.target.value)} placeholder="Masalan: Saytga yangi Speaking bo‘limi uchun g‘oya ber…" rows="3" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitBossTask();}}}/><button className="button-primary test-next" disabled={!bossInput.trim()||bossBusy} onClick={submitBossTask}>{bossBusy?'AI jamoasi ishlayapti…':'Jamoaga topshiriq berish'} <ArrowRight size={16}/></button><div className="result-note">AI tavsiya va reja beradi; hozircha sayt kodini avtomatik o‘zgartirmaydi.</div></div></div>}
       {assessmentOpen && <Assessment onClose={() => setAssessmentOpen(false)} />}
       {dailyOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Kunlik mashq"><div className="test-modal"><button className="modal-close" onClick={() => setDailyOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">DAILY PRACTICE · 5 DAQIQA</div><div className="result-icon"><CalendarCheck size={28}/></div><h2>Bugungi kichik maqsad</h2><p className="lesson-intro">Quyidagi gapni o‘qing va ma’nosini eslab qoling.</p><div className="daily-prompt"><b>“Small steps lead to big progress.”</b><span>Kichik qadamlar katta rivojlanishga olib keladi.</span></div><div className="daily-task"><b>Mini-vazifa</b><p>“I practise English every day.” gapini ovoz chiqarib 3 marta o‘qing, so‘ng o‘zingiz haqingizda shunga o‘xshash bitta gap yozing.</p></div>{dailyDone ? <p className="lesson-feedback correct">Bugungi mashq bajarilgan! Jami {dailyStats.xp} XP to‘pladingiz.</p> : <button className="button-primary test-next" onClick={finishDailyPractice}>Mashqni bajardim · +10 XP <Star size={16}/></button>}</div></div>}
       {vocabOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Smart Vocabulary"><div className="test-modal"><button className="modal-close" onClick={() => setVocabOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">SMART VOCABULARY · {knownWords.length}/{vocabulary.length}</div><h2>So‘zlarni o‘rganing</h2><p className="lesson-intro">“Yod oldim” tugmasini bosib, o‘rgangan so‘zlaringizni belgilang. Natija shu brauzerda saqlanadi.</p><div className="smart-vocab-list">{vocabulary.map(item => <article className={knownWords.includes(item.word) ? 'smart-vocab-item learned' : 'smart-vocab-item'} key={item.word}><div className="vocab-top"><b>{item.word}</b><span>{item.level}</span></div><p>{item.translation}</p><small>{item.example}</small><button className="vocab-mark" onClick={() => saveKnownWords(knownWords.includes(item.word) ? knownWords.filter(word => word !== item.word) : [...knownWords, item.word])}>{knownWords.includes(item.word) ? '✓ O‘rganildi' : 'Yod oldim'}</button></article>)}</div><p className="result-note">Eslatma: bu boshlang‘ich takrorlash ro‘yxati. Hozircha so‘zlar hisoblagichi qurilmangizdagi brauzerda saqlanadi.</p></div></div>}
