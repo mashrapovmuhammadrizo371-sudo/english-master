@@ -68,7 +68,7 @@ export default {
           Authorization: "Bearer " + env.GROQ_API_KEY,
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
+          model: "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
             { role: "user", content: prompt },
