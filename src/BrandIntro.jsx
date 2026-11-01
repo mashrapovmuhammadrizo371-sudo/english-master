@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import BrandMark from './BrandMark.jsx';
 import './brand-intro.css';
 
@@ -50,11 +50,7 @@ function playWhooshAndChime() {
 }
 
 export default function BrandIntro({ onComplete }) {
-  const started = useRef(false);
-
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
     playWhooshAndChime();
     // Move on as soon as the logo, collapsing line, wordmark, and tagline finish.
     const timer = window.setTimeout(onComplete, 4200);
