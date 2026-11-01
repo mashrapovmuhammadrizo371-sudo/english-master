@@ -63,6 +63,10 @@ function App() {
   const [lessonChecked, setLessonChecked] = useState(false);
   const [completedLessons, setCompletedLessons] = useState(() => { try { return JSON.parse(localStorage.getItem('em-completed-lessons') || '[]'); } catch { return []; } });
   const [aiTutorOpen, setAiTutorOpen] = useState(false);
+  const [bossOpen, setBossOpen] = useState(false);
+  const [bossInput, setBossInput] = useState('');
+  const [bossBusy, setBossBusy] = useState(false);
+  const [bossMessages, setBossMessages] = useState([{ role: 'assistant', content: 'Salom! Men BOSS AI — English Master AI jamoasining bosh yordamchisiman. G‘oyangizni yozing, mutaxassislar bilan tahlil qilaman.' }]);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
   const [vocabOpen, setVocabOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -115,6 +119,41 @@ function App() {
     } catch (error) {
       setTutorMessages([...nextMessages, { role: 'assistant', content: 'Ulanishda xatolik: ' + (error.message || 'Qayta urinib ko‘ring.') }]);
     } finally { setTutorBusy(false); }
+  };
+  const submitBossTask = async () => {
+    const task = bossInput.trim();
+    if (!task || bossBusy) return;
+    const history = [...bossMessages, { role: 'user', content: task }];
+    setBossMessages(history); setBossInput(''); setBossBusy(true);
+    try {
+      const agents = [
+        { name: 'AI Innovator', role: 'Generate 3 original, practical product ideas for English Master.' },
+        { name: 'AI Designer', role: 'Suggest a clean, modern, mobile-friendly UI concept. Preserve the purple/navy design.' },
+        { name: 'AI Builder', role: 'Propose feature behavior and a practical implementation plan. Do not claim code was changed.' },
+        { name: 'AI Analyst', role: 'Review feasibility, user value, risks, and priorities.' }
+      ];
+      const results = [];
+      for (const agent of agents) {
+        const response = await fetch('https://english-master-assessment.mashrapovmuhammadrizo371.workers.dev', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'chat', content: task, instructions: 'You are ' + agent.name + '. ' + agent.role + ' Reply in Uzbek, concise and concrete. Return JSON with keys summary, corrections, nextSteps, strengths, score. Put your answer in summary.' })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'AI mutaxassislardan biri javob bera olmadi.');
+        results.push({ name: agent.name, text: data.assessment?.summary || 'Taklif tayyor.' });
+      }
+      const combined = results.map(item => item.name + ':\n' + item.text).join('\n\n');
+      const finalResponse = await fetch('https://english-master-assessment.mashrapovmuhammadrizo371.workers.dev', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'chat', content: 'Foydalanuvchi vazifasi: ' + task + '\n\nMutaxassislar natijalari:\n' + combined, instructions: 'You are BOSS AI, coordinator of four specialists. Synthesize their input into one clear Uzbek response: best recommendation, why, practical next steps, and resolve disagreements. Do not claim actions were performed. Return JSON with keys summary, corrections, nextSteps, strengths, score. Put synthesis in summary.' })
+      });
+      const finalData = await finalResponse.json().catch(() => ({}));
+      if (!finalResponse.ok) throw new Error(finalData.error || 'BOSS AI yakuniy javobni tayyorlay olmadi.');
+      const synthesis = finalData.assessment?.summary || 'Mutaxassislar tahlili tayyor.';
+      setBossMessages([...history, { role: 'assistant', content: '👑 BOSS AI — YAKUNIY YECHIM\n\n' + synthesis + '\n\n' + results.map(item => '• ' + item.name + ': javobi tayyor').join('\n') }]);
+    } catch (error) {
+      setBossMessages([...history, { role: 'assistant', content: 'Ulanishda xatolik: ' + (error.message || 'Qayta urinib ko‘ring.') }]);
+    } finally { setBossBusy(false); }
   };
   const startVoiceInput = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -176,6 +215,7 @@ function App() {
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
+          <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>
           <button className={activePage === 'profile' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('profile')}>Profil</button>
         </nav>
       </header>
@@ -246,6 +286,7 @@ function App() {
       </main>
       <footer><a className="footer-brand" href="#home">english<span>master</span></a><p>IELTS & CEFR Preparation Platform</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
 
+      {bossOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="BOSS AI Control Center"><div className="test-modal boss-modal"><button className="modal-close" onClick={() => setBossOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · AI CONTROL CENTER</div><div className="result-icon"><Sparkles size={28}/></div><h2>👑 BOSS AI</h2><p className="lesson-intro">4 ta AI mutaxassis vazifani alohida tahlil qiladi. BOSS AI natijalarni birlashtirib, yagona tavsiya beradi.</p><div className="boss-team-grid"><div><b>💡 AI Innovator</b><small>Yangi g‘oyalar</small></div><div><b>🎨 AI Designer</b><small>Dizayn takliflari</small></div><div><b>🏗️ AI Builder</b><small>Funksiya rejasi</small></div><div><b>🔍 AI Analyst</b><small>Tahlil va ustuvorlik</small></div></div><div className="boss-chat-history">{bossMessages.map((message,index)=><div className={message.role==='user'?'tutor-chat-bubble user':'tutor-chat-bubble assistant'} key={index}><b>{message.role==='user'?'Siz':'👑 BOSS AI'}</b><p>{message.content}</p></div>)}{bossBusy && <div className="tutor-chat-bubble assistant"><p>4 ta AI ishlayapti, BOSS natijalarni birlashtirmoqda…</p></div>}</div><textarea className="tutor-input" value={bossInput} onChange={e=>setBossInput(e.target.value)} placeholder="Masalan: Saytga yangi Speaking bo‘limi uchun g‘oya ber…" rows="3" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitBossTask();}}}/><button className="button-primary test-next" disabled={!bossInput.trim()||bossBusy} onClick={submitBossTask}>{bossBusy?'AI jamoasi ishlayapti…':'Jamoaga topshiriq berish'} <ArrowRight size={16}/></button><div className="result-note">AI tavsiya va reja beradi; hozircha sayt kodini avtomatik o‘zgartirmaydi.</div></div></div>}
       {assessmentOpen && <Assessment onClose={() => setAssessmentOpen(false)} />}
       {dailyOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Kunlik mashq"><div className="test-modal"><button className="modal-close" onClick={() => setDailyOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">DAILY PRACTICE · 5 DAQIQA</div><div className="result-icon"><CalendarCheck size={28}/></div><h2>Bugungi kichik maqsad</h2><p className="lesson-intro">Quyidagi gapni o‘qing va ma’nosini eslab qoling.</p><div className="daily-prompt"><b>“Small steps lead to big progress.”</b><span>Kichik qadamlar katta rivojlanishga olib keladi.</span></div><div className="daily-task"><b>Mini-vazifa</b><p>“I practise English every day.” gapini ovoz chiqarib 3 marta o‘qing, so‘ng o‘zingiz haqingizda shunga o‘xshash bitta gap yozing.</p></div>{dailyDone ? <p className="lesson-feedback correct">Bugungi mashq bajarilgan! Jami {dailyStats.xp} XP to‘pladingiz.</p> : <button className="button-primary test-next" onClick={finishDailyPractice}>Mashqni bajardim · +10 XP <Star size={16}/></button>}</div></div>}
       {vocabOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Smart Vocabulary"><div className="test-modal"><button className="modal-close" onClick={() => setVocabOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">SMART VOCABULARY · {knownWords.length}/{vocabulary.length}</div><h2>So‘zlarni o‘rganing</h2><p className="lesson-intro">“Yod oldim” tugmasini bosib, o‘rgangan so‘zlaringizni belgilang. Natija shu brauzerda saqlanadi.</p><div className="smart-vocab-list">{vocabulary.map(item => <article className={knownWords.includes(item.word) ? 'smart-vocab-item learned' : 'smart-vocab-item'} key={item.word}><div className="vocab-top"><b>{item.word}</b><span>{item.level}</span></div><p>{item.translation}</p><small>{item.example}</small><button className="vocab-mark" onClick={() => saveKnownWords(knownWords.includes(item.word) ? knownWords.filter(word => word !== item.word) : [...knownWords, item.word])}>{knownWords.includes(item.word) ? '✓ O‘rganildi' : 'Yod oldim'}</button></article>)}</div><p className="result-note">Eslatma: bu boshlang‘ich takrorlash ro‘yxati. Hozircha so‘zlar hisoblagichi qurilmangizdagi brauzerda saqlanadi.</p></div></div>}
