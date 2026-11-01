@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Brain, ChartNoAxesCombined, GraduationCap, Sparkles, Target } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, ChartNoAxesCombined, GraduationCap, Sparkles } from 'lucide-react';
 import BrandMark from './BrandMark.jsx';
 import './welcome.css';
 
@@ -25,11 +25,6 @@ export default function WelcomeIntro({ user, onContinue }) {
         <h1>ENGLISH <span>MASTER</span></h1>
         <p className="em-welcome__quote">“Master English. Shape your future.”</p>
         <p className="em-welcome__description">Ingliz tilini ishonch bilan o‘rganing, bilimingizni rivojlantiring va maqsadlaringiz sari dadil qadam tashlang.</p>
-        <button className="em-welcome__cta" onClick={onContinue}>
-          <span>Biz bilan yuqori natijalarga erishing</span>
-          <ArrowRight size={23} />
-        </button>
-        <p className="em-welcome__hint">Sizning rivojlanishingiz — bizning maqsadimiz.</p>
       </section>
 
       <section className="em-welcome__features" aria-label="English Master imkoniyatlari">
@@ -37,6 +32,15 @@ export default function WelcomeIntro({ user, onContinue }) {
         <article><span><Brain size={22} /></span><h2>AI bilan o‘rganish</h2><p>Interaktiv mashqlar orqali bilim va ishonchingizni oshiring.</p></article>
         <article><span><ChartNoAxesCombined size={22} /></span><h2>CEFR &amp; IELTS</h2><p>Darajangizni tekshiring va keyingi maqsadingizni belgilang.</p></article>
       </section>
+
+      <section className="em-welcome__action" aria-label="O‘rganishni boshlash">
+        <button className="em-welcome__cta" onClick={onContinue}>
+          <span>Biz bilan yuqori natijalarga erishing</span>
+          <ArrowRight size={23} />
+        </button>
+        <p className="em-welcome__hint">Sizning rivojlanishingiz — bizning maqsadimiz.</p>
+      </section>
+
       <footer className="em-welcome__footer"><GraduationCap size={17} /> Learn with purpose. Achieve more.</footer>
     </main>
   );
