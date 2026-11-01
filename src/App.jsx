@@ -4,6 +4,7 @@ import BrandMark from './BrandMark.jsx';
 import BrandHero from './BrandHero.jsx';
 import BrandIntro from './BrandIntro.jsx';
 import WelcomeIntro from './WelcomeIntro.jsx';
+import PlacementTest from './PlacementTest.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
 const readingPassages = [
@@ -58,6 +59,7 @@ function App() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [authUser, setAuthUser] = useState(null);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showPlacementTest, setShowPlacementTest] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [authError, setAuthError] = useState('');
@@ -288,7 +290,8 @@ function App() {
     return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
   }
 
-  if (showWelcome) return <WelcomeIntro user={authUser} onContinue={() => setShowWelcome(false)} />;
+  if (showWelcome) return <WelcomeIntro user={authUser} onContinue={() => { setShowWelcome(false); if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true); }} />;
+  if (showPlacementTest) return <PlacementTest onComplete={(result) => { localStorage.setItem('em-placement-completed', JSON.stringify({ ...result, completedAt: Date.now() })); setShowPlacementTest(false); }} />;
 
   return (
     <div className="app-shell">
