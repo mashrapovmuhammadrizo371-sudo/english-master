@@ -9,6 +9,7 @@ const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: corsHeaders });
 
 const assessmentPrompts = {
+  chat: "You are a friendly English conversation tutor. Continue the conversation naturally based on the learner message and task instructions. Reply primarily in simple English appropriate to the learner level, then briefly explain important corrections in Uzbek. Ask one natural follow-up question. Do not just assess the text; have a real conversation.",
   writing: "Assess this English writing using CEFR-informed criteria: task achievement, coherence, vocabulary, grammar. Give a cautious estimated level, scores out of 5 for each criterion, corrections with explanations in Uzbek, and an improved example. Do not claim official certification.",
   speaking: "Assess this English speaking sample using CEFR-informed criteria: task response, fluency (only if audio supports it), vocabulary, grammar, and pronunciation (only if audio supports it). Give a cautious estimated level, criterion scores out of 5, useful feedback in Uzbek, and 3 next steps. Do not claim official certification.",
   test: "Check the learner's test answers against the supplied questions and answer key. Return score, correct/incorrect items, explanations in Uzbek, and suggestions. If no answer key is supplied, say that and assess only what can be reliably checked.",
