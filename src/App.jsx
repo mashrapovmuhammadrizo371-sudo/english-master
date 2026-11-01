@@ -126,7 +126,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (authChecking || authUser || !googleButtonRef.current) return;
+    if (!introDone || authChecking || authUser || !googleButtonRef.current) return;
     let cancelled = false;
     const initializeGoogle = () => {
       if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
@@ -156,7 +156,7 @@ function App() {
       script.addEventListener('load', initializeGoogle);
     }
     return () => { cancelled = true; };
-  }, [authChecking, authUser]);
+  }, [introDone, authChecking, authUser]);
 
   const vocabulary = [
     { word: 'improve', translation: 'yaxshilamoq', example: 'I want to improve my English.', level: 'A2' },
