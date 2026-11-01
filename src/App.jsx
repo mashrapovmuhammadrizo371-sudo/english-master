@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Assessment from './Assessment.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
@@ -66,6 +66,11 @@ function App() {
   const [dailyOpen, setDailyOpen] = useState(false);
   const [tutorInput, setTutorInput] = useState('');
   const [tutorFeedback, setTutorFeedback] = useState('');
+  const [tutorMessages, setTutorMessages] = useState([{ role: 'assistant', content: 'Hi! I am your English tutor. What would you like to talk about today? You can write in English or Uzbek.' }]);
+  const [tutorBusy, setTutorBusy] = useState(false);
+  const [tutorLevel, setTutorLevel] = useState('A2');
+  const [voiceListening, setVoiceListening] = useState(false);
+  const tutorEndRef = useRef(null);
   const [dailyDone, setDailyDone] = useState(localStorage.getItem('em-daily-done') === new Date().toDateString());
   const [dailyStats, setDailyStats] = useState(() => { try { return JSON.parse(localStorage.getItem('em-daily-stats') || '{"xp":0,"streak":0,"lastDay":""}'); } catch { return { xp: 0, streak: 0, lastDay: '' }; } });
   const [knownWords, setKnownWords] = useState(() => { try { return JSON.parse(localStorage.getItem('em-known-words') || '[]'); } catch { return []; } });
@@ -86,20 +91,48 @@ function App() {
     setDailyStats(nextStats); localStorage.setItem('em-daily-stats', JSON.stringify(nextStats));
     localStorage.setItem('em-daily-done', today); setDailyDone(true);
   };
-  const submitTutorPractice = () => {
+  const submitTutorPractice = async () => {
     const text = tutorInput.trim();
-    if (!text) return;
-    const normalized = text.toLowerCase();
-    let feedback = 'Yaxshi urinish! Gapni katta harf bilan boshlang va oxiriga nuqta qo‘ying. Yana bir marta yozib ko‘ring.';
-    if (normalized.includes('i am agree')) feedback = 'Tabiiyroq variant: “I agree.” Ingliz tilida “agree” fe’li oldidan “am” qo‘yilmaydi.';
-    else if (normalized.includes('he go') || normalized.includes('she go')) feedback = 'Present Simple’da he/she/it bilan fe’lga odatda -s qo‘shiladi: “He goes” yoki “She goes”.';
-    else if (normalized.includes('i am student')) feedback = 'Bu gapda artikl kerak: “I am a student.” O‘zbek tilida artikl yo‘q, shuning uchun uni unutish oson.';
-    else if (normalized.includes('i am learning english')) feedback = 'Ajoyib! “I am learning English” grammatik jihatdan to‘g‘ri. Til nomi “English” bosh harf bilan yoziladi.';
-    else if (normalized.includes('because')) feedback = 'Zo‘r, “because” sababni tushuntirishga yordam beradi. Endi gapdagi zamon va so‘z tartibini tekshiring.';
-    else if (text.split(/\s+/).length >= 5) feedback = 'Yaxshi, to‘liq gap yozibsiz! Bu demo mashq aniq AI baholashi emas. Ega + fe’l + to‘ldiruvchi tartibi, zamon va artikllarni tekshiring.';
-    setTutorFeedback(feedback);
-    const nextStats = { ...dailyStats, xp: dailyStats.xp + 2 }; setDailyStats(nextStats);
-    localStorage.setItem('em-daily-stats', JSON.stringify(nextStats));
+    if (!text || tutorBusy) return;
+    const nextMessages = [...tutorMessages, { role: 'user', content: text }];
+    setTutorMessages(nextMessages);
+    setTutorInput('');
+    setTutorFeedback('');
+    setTutorBusy(true);
+    try {
+      const response = await fetch('https://english-master-assessment.mashrapovmuhammadrizo371.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'chat', content: text, instructions: 'English level: ' + tutorLevel + '. Continue a friendly English-learning conversation. Reply naturally to the user, ask one relevant follow-up question, correct important English mistakes gently, and explain corrections briefly in Uzbek. Return JSON with keys estimatedLevel, summary, criteria, corrections, strengths, nextSteps, score. Put the actual conversational reply in summary and any corrections in corrections.' })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail ? data.error + ' (' + data.detail + ')' : data.error || 'AI javob bera olmadi.');
+      const result = data.assessment || {};
+      const reply = [result.summary || '', ...(Array.isArray(result.corrections) ? result.corrections.map(c => c.corrected ? 'Correction: ' + c.corrected + (c.explanation ? ' — ' + c.explanation : '') : '') : []), ...(Array.isArray(result.nextSteps) ? result.nextSteps : [])].filter(Boolean).join('\n\n');
+      setTutorMessages([...nextMessages, { role: 'assistant', content: reply || 'Let’s keep practising! Tell me more.' }]);
+    } catch (error) {
+      setTutorMessages([...nextMessages, { role: 'assistant', content: 'Ulanishda xatolik: ' + (error.message || 'Qayta urinib ko‘ring.') }]);
+    } finally { setTutorBusy(false); }
+  };
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { setTutorFeedback('Brauzeringiz ovozni matnga aylantirishni qo‘llamaydi. Chrome brauzerida sinab ko‘ring yoki matn yozing.'); return; }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceListening(true);
+    recognition.onend = () => setVoiceListening(false);
+    recognition.onerror = () => { setVoiceListening(false); setTutorFeedback('Mikrofon ishlamadi. Brauzer sozlamalarida mikrofon ruxsatini tekshiring.'); };
+    recognition.onresult = event => setTutorInput(prev => (prev ? prev + ' ' : '') + event.results[0][0].transcript);
+    recognition.start();
+  };
+  const speakTutorReply = (text) => {
+    if (!('speechSynthesis' in window)) { setTutorFeedback('Brauzeringiz ovozli o‘qishni qo‘llamaydi.'); return; }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.92;
+    window.speechSynthesis.speak(utterance);
   };
 
   const startReading = () => {
@@ -213,7 +246,7 @@ function App() {
       {assessmentOpen && <Assessment onClose={() => setAssessmentOpen(false)} />}
       {dailyOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Kunlik mashq"><div className="test-modal"><button className="modal-close" onClick={() => setDailyOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">DAILY PRACTICE · 5 DAQIQA</div><div className="result-icon"><CalendarCheck size={28}/></div><h2>Bugungi kichik maqsad</h2><p className="lesson-intro">Quyidagi gapni o‘qing va ma’nosini eslab qoling.</p><div className="daily-prompt"><b>“Small steps lead to big progress.”</b><span>Kichik qadamlar katta rivojlanishga olib keladi.</span></div><div className="daily-task"><b>Mini-vazifa</b><p>“I practise English every day.” gapini ovoz chiqarib 3 marta o‘qing, so‘ng o‘zingiz haqingizda shunga o‘xshash bitta gap yozing.</p></div>{dailyDone ? <p className="lesson-feedback correct">Bugungi mashq bajarilgan! Jami {dailyStats.xp} XP to‘pladingiz.</p> : <button className="button-primary test-next" onClick={finishDailyPractice}>Mashqni bajardim · +10 XP <Star size={16}/></button>}</div></div>}
       {vocabOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Smart Vocabulary"><div className="test-modal"><button className="modal-close" onClick={() => setVocabOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">SMART VOCABULARY · {knownWords.length}/{vocabulary.length}</div><h2>So‘zlarni o‘rganing</h2><p className="lesson-intro">“Yod oldim” tugmasini bosib, o‘rgangan so‘zlaringizni belgilang. Natija shu brauzerda saqlanadi.</p><div className="smart-vocab-list">{vocabulary.map(item => <article className={knownWords.includes(item.word) ? 'smart-vocab-item learned' : 'smart-vocab-item'} key={item.word}><div className="vocab-top"><b>{item.word}</b><span>{item.level}</span></div><p>{item.translation}</p><small>{item.example}</small><button className="vocab-mark" onClick={() => saveKnownWords(knownWords.includes(item.word) ? knownWords.filter(word => word !== item.word) : [...knownWords, item.word])}>{knownWords.includes(item.word) ? '✓ O‘rganildi' : 'Yod oldim'}</button></article>)}</div><p className="result-note">Eslatma: bu boshlang‘ich takrorlash ro‘yxati. Hozircha so‘zlar hisoblagichi qurilmangizdagi brauzerda saqlanadi.</p></div></div>}
-      {aiTutorOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="English mashq ustoz"><div className="test-modal"><button className="modal-close" onClick={() => {setAiTutorOpen(false);setTutorFeedback('');}} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH PRACTICE · BETA</div><div className="result-icon"><MessageCircle size={28}/></div><h2>Inglizcha gap yozing</h2><p className="lesson-intro">Gapingizni yozing. Demo mashq keng tarqalgan ayrim xatolar bo‘yicha o‘zbekcha maslahat beradi.</p><textarea className="tutor-input" value={tutorInput} onChange={e => {setTutorInput(e.target.value);setTutorFeedback('');}} placeholder="Masalan: I am agree with you..." rows="3" /><div className="tutor-examples"><button onClick={() => {setTutorInput('I am agree with you.');setTutorFeedback('');}}>I am agree...</button><button onClick={() => {setTutorInput('He go to school every day.');setTutorFeedback('');}}>He go...</button><button onClick={() => {setTutorInput('I am student.');setTutorFeedback('');}}>I am student...</button></div><button className="button-primary test-next" disabled={!tutorInput.trim()} onClick={submitTutorPractice}>Javobni tahlil qilish <ArrowRight size={16}/></button>{tutorFeedback && <div className="tutor-feedback"><b>Maslahat</b><p>{tutorFeedback}</p></div>}<div className="result-note">Muhim: bu hozircha qoidalarga asoslangan demo, haqiqiy AI emas. To‘liq AI ustoz uchun xavfsiz backend va AI API ulash kerak bo‘ladi.</div></div></div>}
+      {aiTutorOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="AI English Tutor"><div className="test-modal tutor-chat-modal"><button className="modal-close" onClick={() => {setAiTutorOpen(false);setTutorFeedback('');if ('speechSynthesis' in window) window.speechSynthesis.cancel();}} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · AI TUTOR</div><div className="result-icon"><MessageCircle size={28}/></div><h2>AI bilan inglizcha gaplashing</h2><p className="lesson-intro">Inglizcha yozing yoki mikrofon orqali gapiring. AI suhbatlashadi va xatolaringizni o‘zbekcha tushuntiradi.</p><label className="tutor-level-label">Ingliz tili darajangiz</label><select className="tutor-level-select" value={tutorLevel} onChange={e=>setTutorLevel(e.target.value)}><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select><div className="tutor-chat-history">{tutorMessages.map((message,index)=><div className={message.role==='user'?'tutor-chat-bubble user':'tutor-chat-bubble assistant'} key={index}><b>{message.role==='user'?'Siz':'AI Tutor'}</b><p>{message.content}</p>{message.role==='assistant' && <button className="tutor-speak-button" onClick={()=>speakTutorReply(message.content)}>🔊 Eshitish</button>}</div>)}{tutorBusy && <div className="tutor-chat-bubble assistant"><p>AI javob tayyorlamoqda…</p></div>}<div ref={tutorEndRef}/></div><textarea className="tutor-input" value={tutorInput} onChange={e=>setTutorInput(e.target.value)} placeholder="Write in English… / Inglizcha yozing" rows="2" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitTutorPractice();}}}/><div className="tutor-chat-actions"><button className="tutor-voice-button" onClick={startVoiceInput} disabled={voiceListening}>{voiceListening?'🎙️ Tinglayapman…':'🎙️ Gapirish'}</button><button className="button-primary test-next" disabled={!tutorInput.trim()||tutorBusy} onClick={submitTutorPractice}>{tutorBusy?'Kutilmoqda…':'Yuborish'} <ArrowRight size={16}/></button></div>{tutorFeedback && <div className="tutor-feedback"><p>{tutorFeedback}</p></div>}<div className="result-note">Ovozli kiritish va javobni eshitish brauzeringiz imkoniyatlariga bog‘liq. AI suhbatlari uchun internet kerak.</div></div></div>}
       {studyPlanOpen && <div className="modal-backdrop study-backdrop" role="dialog" aria-modal="true" aria-label="Shaxsiy o‘quv reja">
         <div className="test-modal study-modal">
           <button className="modal-close" onClick={() => { setStudyPlanOpen(false); setActiveLesson(false); }} aria-label="Yopish"><X size={21}/></button>
