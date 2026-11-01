@@ -19,7 +19,7 @@ export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
     if (request.method !== "POST") return json({ error: "Faqat POST so‘rovi qabul qilinadi." }, 405);
-    if (!env.GEMINI_API_KEY) return json({ error: "Gemini API kaliti serverda sozlanmagan." }, 500);
+    if (!env.GROQ_API_KEY) return json({ error: "Groq API kaliti serverda sozlanmagan. GROQ_API_KEY secretini tekshiring." }, 500);
 
     try {
       const body = await request.json();
@@ -32,30 +32,64 @@ export default {
       }
       if (audioBase64 && audioBase64.length > 12_000_000) return json({ error: "Audio fayl juda katta. Kichikroq audio yuboring." }, 413);
 
-      const parts = [{
-        text: [
-          assessmentPrompts[type],
-          "Return the feedback in clear Uzbek, using JSON with keys: estimatedLevel, summary, criteria (array of {name, scoreOutOf5, feedback}), corrections (array of {original, corrected, explanation}), strengths (array), nextSteps (array), score (number or null). Use only the keys relevant to the task. Keep feedback supportive and honest.",
-          instructions ? "TASK INSTRUCTIONS:\n" + String(instructions).slice(0, 5000) : "",
-          answerKey ? "ANSWER KEY:\n" + String(answerKey).slice(0, 5000) : "",
-          content ? "LEARNER RESPONSE:\n" + String(content) : "",
-        ].filter(Boolean).join("\n\n"),
-      }];
-      if (audioBase64) parts.push({ inline_data: { mime_type: audioMimeType, data: audioBase64 } });
+      let learnerContent = String(content || "");
+      if (audioBase64) {
+        const bytes = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
+        const audioBlob = new Blob([bytes], { type: audioMimeType });
+        const form = new FormData();
+        form.append("file", audioBlob, "speaking-audio");
+        form.append("model", "whisper-large-v3-turbo");
+        form.append("response_format", "json");
+        const transcriptionResponse = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + env.GROQ_API_KEY },
+          body: form,
+        });
+        const transcription = await transcriptionResponse.json().catch(() => ({}));
+        if (!transcriptionResponse.ok) {
+          return json({ error: transcriptionResponse.status === 429 ? "Groq audio limiti tugagan yoki vaqtincha ko‘p so‘rov yuborilgan." : "Groq audio transkripsiyasi xato berdi. Audio formatini va API kalitini tekshiring." }, transcriptionResponse.status === 429 ? 429 : 502);
+        }
+        learnerContent = [learnerContent, "Audio transkripsiyasi:", transcription.text || ""].filter(Boolean).join("\\n\\n");
+        if (!learnerContent.trim()) return json({ error: "Audiodan matn ajratib bo‘lmadi. Qayta urinib ko‘ring." }, 502);
+      }
 
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+      const prompt = [
+        assessmentPrompts[type],
+        "Return the feedback in clear Uzbek, using valid JSON with keys: estimatedLevel, summary, criteria (array of {name, scoreOutOf5, feedback}), corrections (array of {original, corrected, explanation}), strengths (array), nextSteps (array), score (number or null). Use only relevant keys. Keep feedback supportive and honest. Do not claim official certification.",
+        instructions ? "TASK INSTRUCTIONS:\\n" + String(instructions).slice(0, 5000) : "",
+        answerKey ? "ANSWER KEY:\\n" + String(answerKey).slice(0, 5000) : "",
+        learnerContent ? "LEARNER RESPONSE:\\n" + learnerContent : "",
+      ].filter(Boolean).join("\\n\\n");
+
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + env.GROQ_API_KEY,
+        },
         body: JSON.stringify({
-          contents: [{ role: "user", parts }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
+            { role: "user", content: prompt },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.2,
         }),
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        return json({ error: response.status === 429 ? "API so‘rovlari limiti tugagan yoki vaqtincha ko‘p so‘rov yuborilgan." : "Gemini API so‘rovini bajara olmadi. API sozlamalarini tekshiring." }, response.status === 429 ? 429 : 502);
+        const providerMessage = result?.error?.message || "";
+        const safeError = response.status === 401 || response.status === 403
+          ? "Groq API kaliti noto‘g‘ri yoki ruxsati yo‘q. GROQ_API_KEY secretini tekshiring."
+          : response.status === 429
+            ? "Groq API limiti tugagan yoki vaqtincha ko‘p so‘rov yuborilgan."
+            : response.status === 400
+              ? "Groq so‘rovini qabul qilmadi. Model yoki yuborilgan ma’lumotni tekshirish kerak."
+              : "Groq API hozir javob bermadi. Keyinroq qayta urinib ko‘ring.";
+        return json({ error: safeError, ...(providerMessage ? { detail: providerMessage.slice(0, 240) } : {}) }, response.status === 429 ? 429 : 502);
       }
-      const output = result?.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("").trim();
+      const output = result?.choices?.[0]?.message?.content?.trim();
       if (!output) return json({ error: "AI javob qaytarmadi. Qayta urinib ko‘ring." }, 502);
       let assessment;
       try { assessment = JSON.parse(output); }
