@@ -51,6 +51,8 @@ const readingPassages = [
 
 function App() {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [activePage, setActivePage] = useState('home');
+  const navigateTo = (page) => { setActivePage(page); setMobileMenu(false); if (page === 'tutor') setAiTutorOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const [readingOpen, setReadingOpen] = useState(false);
   const [readingIndex, setReadingIndex] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState({});
@@ -169,15 +171,16 @@ function App() {
           <span>english<span className="brand-accent">master</span><small>IELTS & CEFR PREPARATION</small></span>
         </a>
         <button className="menu-toggle" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Menu">{mobileMenu ? <X /> : <Menu />}</button>
-        <nav className={mobileMenu ? 'nav-links nav-open' : 'nav-links'}>
-          <a href="#features" onClick={() => setMobileMenu(false)}>Imkoniyatlar</a>
-          <a href="#practice" onClick={() => setMobileMenu(false)}>Mashqlar</a>
-          <a href="#path" onClick={() => setMobileMenu(false)}>O‘quv yo‘li</a>
-          <a href="#about" onClick={() => setMobileMenu(false)}>Platforma haqida</a>
+        <nav className={mobileMenu ? 'nav-links nav-open app-navigation' : 'nav-links app-navigation'} aria-label="Asosiy navigatsiya">
+          <button className={activePage === 'home' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('home')}>Bosh sahifa</button>
+          <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
+          <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
+          <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
+          <button className={activePage === 'profile' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('profile')}>Profil</button>
         </nav>
       </header>
 
-      <main id="home">
+      <main id="home" className="app-pages" data-page={activePage}>
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow"><Sparkles size={15} /> INGLIZ TILINI YANGI BOSQICHGA OLIB CHIQING</div>
