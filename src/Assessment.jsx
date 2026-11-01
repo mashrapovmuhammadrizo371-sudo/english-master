@@ -20,7 +20,7 @@ export default function Assessment({ onClose }) {
   const fileRef = useRef(null);
 
   const selected = TYPES.find(item => item.id === type);
-  const apiUrl = import.meta.env.VITE_ASSESSMENT_API_URL;
+  const apiUrl = import.meta.env.VITE_ASSESSMENT_API_URL || 'https://english-master-assessment.mashrapovmuhammadrizo371.workers.dev';
 
   const submit = async (event) => {
     event.preventDefault();
