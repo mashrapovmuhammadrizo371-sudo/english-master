@@ -143,3 +143,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a69f
 @media(max-width:680px){.app-navigation .nav-page{text-align:left;padding:4px 0;font-size:14px}.app-navigation .nav-page.active:after{left:auto;right:0;top:0;bottom:0;width:3px;height:auto}.app-pages[data-page='lessons']>.features-section,.app-pages[data-page='tests']>.features-section,.app-pages[data-page='profile']>.practice-section{padding-top:35px}}
 
 .app-pages[data-page='home']>.features-section,.app-pages[data-page='home']>.path-section,.app-pages[data-page='home']>.practice-section,.app-pages[data-page='home']>.bottom-cta{display:none}
+
+/* BOSS AI Control Center */
+.boss-modal{width:min(760px,94vw);max-height:90vh;overflow-y:auto}
+.boss-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.boss-team-grid>div{display:flex;flex-direction:column;gap:5px;padding:14px;border:1px solid rgba(125,105,230,.2);border-radius:14px;background:rgba(125,105,230,.06);text-align:left}
+.boss-team-grid b{font-size:14px;color:var(--text,#24213a)}
+.boss-team-grid small{font-size:12px;color:var(--muted,#777)}
+.boss-chat-history{display:flex;flex-direction:column;gap:12px;max-height:290px;overflow-y:auto;margin:16px 0;padding:4px}
+.boss-chat-history .tutor-chat-bubble{white-space:pre-wrap;overflow-wrap:anywhere}
+.boss-modal .tutor-input{width:100%;box-sizing:border-box}
+.boss-modal>.button-primary{width:100%;margin-top:10px}
+.boss-nav{white-space:nowrap}
+@media(max-width:600px){.boss-team-grid{grid-template-columns:1fr 1fr;gap:8px}.boss-team-grid>div{padding:10px}.boss-team-grid b{font-size:12px}.boss-modal{padding:22px 16px}}
