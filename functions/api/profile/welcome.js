@@ -40,10 +40,24 @@ export async function onRequest({ request, env }) {
     `).run();
 
     if (request.method === "GET") {
-      const row = await env.DB.prepare(
-        "SELECT welcome_seen_at FROM user_onboarding WHERE google_sub = ?"
-      ).bind(String(user.id)).first();
-      return json({ seen: Boolean(row?.welcome_seen_at) });
+      const row = await env.DB.prepare(`
+        SELECT u.created_at, o.welcome_seen_at
+        FROM users u
+        LEFT JOIN user_onboarding o ON o.google_sub = u.google_sub
+        WHERE u.google_sub = ?
+      `).bind(String(user.id)).first();
+
+      // Accounts that already existed before this feature shipped have
+      // necessarily passed through the old Welcome screen at least once.
+      const legacyAccount = Boolean(row?.created_at && row.created_at < "2026-11-04 15:49:00");
+      if (legacyAccount && !row?.welcome_seen_at) {
+        await env.DB.prepare(`
+          INSERT INTO user_onboarding (google_sub, welcome_seen_at)
+          VALUES (?, CURRENT_TIMESTAMP)
+          ON CONFLICT(google_sub) DO UPDATE SET welcome_seen_at = CURRENT_TIMESTAMP
+        `).bind(String(user.id)).run();
+      }
+      return json({ seen: Boolean(row?.welcome_seen_at) || legacyAccount });
     }
 
     await env.DB.prepare(`
