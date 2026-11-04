@@ -294,6 +294,8 @@ function App() {
   })();
 
 
+  if (window.location.pathname.replace(/\/+$/, '') === '/admin') return <AdminPanel user={null} onExit={() => { window.location.href = '/'; }} />;
+
   if (!introDone) return <BrandIntro onComplete={() => setIntroDone(true)} />;
 
   if (authChecking) {
