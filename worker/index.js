@@ -16,7 +16,7 @@ const assessmentPrompts = {
   task: "Assess whether the learner's response fulfils the supplied task instructions. Check completeness, relevance, clarity, language quality, and missing requirements. Give an estimated CEFR level only if there is enough English evidence, explain feedback in Uzbek, and suggest improvements. Do not claim official certification.",
 };
 
-const DEFAULT_TUTOR_SETTINGS = { enabled: 1, provider: "groq", model: type === "chat" ? tutorSettings.model : "openai/gpt-oss-20b", instructions: "" };
+const DEFAULT_TUTOR_SETTINGS = { enabled: 1, provider: "groq", model: "openai/gpt-oss-20b", instructions: "" };
 
 async function readTutorSettings(env) {
   if (!env.DB) return DEFAULT_TUTOR_SETTINGS;
@@ -88,7 +88,7 @@ export default {
           Authorization: "Bearer " + env.GROQ_API_KEY,
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b",
+          model: type === "chat" ? tutorSettings.model : "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: type === "chat"
               ? ["You are a friendly, careful English tutor. Continue a natural learning conversation, adapt to the learner's level, use clear language, correct important mistakes gently, and ask one useful follow-up question. The response must be valid JSON with the requested keys.", tutorSettings.instructions ? "ADMINISTRATOR'S USTOZ AI RULES (highest priority):\\n" + String(tutorSettings.instructions).slice(0, 4000) : ""].filter(Boolean).join("\\n\\n")
