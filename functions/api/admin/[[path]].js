@@ -6,45 +6,46 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
 });
 const id = () => crypto.randomUUID();
 
-async function authenticate(request, env) {
-  const header = request.headers.get("Authorization") || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (!token) return { error: json({ error: "Kirish tokeni topilmadi." }, 401) };
-  // Delegate Google-token verification and Super Admin recognition to the existing
-  // authentication Worker, which already validates issuer, audience, expiry and ADMIN_EMAIL.
-  const response = await fetch("https://english-master-auth.mashrapovmuhammadrizo371.workers.dev/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ credential: token })
-  });
-  const verified = await response.json().catch(() => ({}));
-  if (!response.ok || !verified.ok || !verified.user?.id || !verified.user?.email) {
-    return { error: json({ error: "Google hisobni serverda tasdiqlab bo‘lmadi." }, 401) };
-  }
-  const user = verified.user;
-  if (user.isAdmin) return { user, role: "super_admin", permissions: ["*"] };
-  const delegated = await env.DB.prepare(
-    "SELECT ar.role,ar.permissions_json FROM admin_roles ar JOIN users u ON u.google_sub=ar.google_sub WHERE lower(u.email)=?"
-  ).bind(user.email.toLowerCase()).first();
-  if (!delegated) return { error: json({ error: "Admin huquqi yo‘q." }, 403) };
-  let permissions = [];
-  try { permissions = JSON.parse(delegated.permissions_json || "[]"); } catch {}
-  return { user, role: "admin", permissions: permissions.filter(p => ALLOWED_PERMISSIONS.includes(p)) };
+const SESSION_COOKIE = "em_admin_session";
+const SESSION_TTL_SECONDS = 8 * 60 * 60;
+const bytesEqual = (a,b) => { const x=new TextEncoder().encode(String(a)); const y=new TextEncoder().encode(String(b)); let d=x.length^y.length; for(let i=0;i<Math.max(x.length,y.length);i++) d|=(x[i]||0)^(y[i]||0); return d===0; };
+async function signSession(payload,secret) { const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]); const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(payload)); return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+async function verifySession(value,secret) { if(!value||!secret)return false; const p=value.split("."); if(p.length!==2||!/^\d+$/.test(p[0]))return false; const exp=Number(p[0]); if(!Number.isSafeInteger(exp)||exp<=Math.floor(Date.now()/1000))return false; return bytesEqual(p[1],await signSession(p[0],secret)); }
+function cookieValue(request,name) { const h=request.headers.get("Cookie")||""; const item=h.split(";").map(x=>x.trim()).find(x=>x.startsWith(name+"=")); return item?decodeURIComponent(item.slice(name.length+1)):""; }
+async function authenticate(request,env) {
+  if(await verifySession(cookieValue(request,SESSION_COOKIE),env.ADMIN_SESSION_SECRET)) return {user:{id:null,email:"password-admin@english-master.local",name:"Administrator"},role:"super_admin",permissions:["*"],passwordSession:true};
+  const header=request.headers.get("Authorization")||""; const token=header.startsWith("Bearer ")?header.slice(7):"";
+  if(!token)return {error:json({error:"Admin sessiyasi topilmadi. Qayta kiring."},401)};
+  const response=await fetch("https://english-master-auth.mashrapovmuhammadrizo371.workers.dev/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:token})});
+  const verified=await response.json().catch(()=>({}));
+  if(!response.ok||!verified.ok||!verified.user?.id||!verified.user?.email)return {error:json({error:"Google hisobni serverda tasdiqlab bo‘lmadi."},401)};
+  const user=verified.user; if(user.isAdmin)return {user,role:"super_admin",permissions:["*"]};
+  const delegated=await env.DB.prepare("SELECT ar.role,ar.permissions_json FROM admin_roles ar JOIN users u ON u.google_sub=ar.google_sub WHERE lower(u.email)=?").bind(user.email.toLowerCase()).first();
+  if(!delegated)return {error:json({error:"Admin huquqi yo‘q."},403)};
+  let permissions=[]; try{permissions=JSON.parse(delegated.permissions_json||"[]");}catch{}
+  return {user,role:"admin",permissions:permissions.filter(p=>ALLOWED_PERMISSIONS.includes(p))};
 }
 const has = (auth, permission) => auth.role === "super_admin" || auth.permissions.includes("*") || auth.permissions.includes(permission);
 async function audit(env, auth, action, type, resourceId = null, details = {}) {
-  await env.DB.prepare("INSERT INTO admin_audit_logs (id,actor_google_sub,action,resource_type,resource_id,details_json) VALUES (?,?,?,?,?,?)")
+  if (!auth.user?.id) return; // Password sessions have no Google subject for the audit foreign key.\n  await env.DB.prepare("INSERT INTO admin_audit_logs (id,actor_google_sub,action,resource_type,resource_id,details_json) VALUES (?,?,?,?,?,?)")
     .bind(id(), auth.user.id, action, type, resourceId, JSON.stringify(details)).run();
 }
 
 export async function onRequest({ request, env }) {
   if (!env.DB) return json({ error: "D1 DB binding ulanmagan." }, 503);
-  const auth = await authenticate(request, env);
-  if (auth.error) return auth.error;
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/api\/admin\/?/, "");
   const method = request.method;
-
+  if(path==="login" && method==="POST"){
+    if(!env.ADMIN_PANEL_PASSWORD||!env.ADMIN_SESSION_SECRET)return json({error:"Admin login Preview muhitida sozlanmagan."},503);
+    const body=await request.json().catch(()=>({})); const supplied=String(body.password||"");
+    if(!supplied||!bytesEqual(supplied,env.ADMIN_PANEL_PASSWORD))return json({error:"Parol noto‘g‘ri."},401);
+    const expires=String(Math.floor(Date.now()/1000)+SESSION_TTL_SECONDS); const signature=await signSession(expires,env.ADMIN_SESSION_SECRET);
+    return new Response(JSON.stringify({ok:true}),{status:200,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","Set-Cookie":SESSION_COOKIE+"="+encodeURIComponent(expires+"."+signature)+"; HttpOnly; Secure; SameSite=Strict; Path=/api/admin; Max-Age="+SESSION_TTL_SECONDS}});
+  }
+  if(path==="logout" && method==="POST")return new Response(JSON.stringify({ok:true}),{status:200,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","Set-Cookie":SESSION_COOKIE+"=; HttpOnly; Secure; SameSite=Strict; Path=/api/admin; Max-Age=0"}});
+  const auth = await authenticate(request, env);
+  if (auth.error) return auth.error;
   if (path === "me" && method === "GET") return json({ role: auth.role, permissions: auth.permissions, user: { email: auth.user.email, name: auth.user.name || "" } });
 
   if (path === "summary" && method === "GET") {
