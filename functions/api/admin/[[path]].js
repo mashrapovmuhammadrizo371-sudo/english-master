@@ -253,7 +253,7 @@ export async function onRequest({ request, env }) {
   if (path === "ai-settings" && method === "POST") {
     if (auth.role !== "super_admin") return json({error:"AI sozlamalarini faqat Super Admin o‘zgartiradi."},403);
     const body = await request.json().catch(()=>({}));
-    const enabled = body.enabled === true ? 1 : 0;
+    const enabled = body.enabled === true || Number(body.enabled) === 1 ? 1 : 0;
     const provider = String(body.provider || "openai");
     const model = String(body.model || "").trim().slice(0,80);
     const instructions = String(body.instructions || "").trim().slice(0,4000);
