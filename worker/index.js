@@ -38,11 +38,30 @@ export default {
       const body = await request.json();
       const { type, content, instructions = "", answerKey = "", audioBase64 = "", audioMimeType = "" } = body || {};
       if (type === "admin_chat") {
+        const credential = String(body.credential || "");
+        if (!credential || credential.length > 10000) {
+          return json({ error: "Admin Google sessiyasi talab qilinadi." }, 401);
+        }
+        const authResponse = await fetch("https://english-master-auth.mashrapovmuhammadrizo371.workers.dev/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential }),
+        });
+        const authResult = await authResponse.json().catch(() => ({}));
+        if (!authResponse.ok || !authResult.ok || !authResult.user?.id) {
+          return json({ error: "Google sessiyasini tasdiqlab bo‘lmadi." }, 401);
+        }
+        if (authResult.user.isAdmin !== true) {
+          return json({ error: "Ustoz AI boshqaruv chatiga faqat Super Admin kira oladi." }, 403);
+        }
+
         const history = Array.isArray(body.messages) ? body.messages.slice(-16).map(item => ({
           role: item?.role === "assistant" ? "assistant" : "user",
           content: String(item?.content || "").trim().slice(0, 4000)
         })).filter(item => item.content) : [];
-        if (!history.length || history.length > 16) return json({ error: "Suhbat xabarlari noto‘g‘ri." }, 400);
+        if (!history.length || history.reduce((sum, item) => sum + item.content.length, 0) > 20000) {
+          return json({ error: "Suhbat xabarlari noto‘g‘ri yoki juda uzun." }, 400);
+        }
         const chatResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + env.GROQ_API_KEY },
