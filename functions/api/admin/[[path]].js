@@ -247,7 +247,7 @@ export async function onRequest({ request, env }) {
   if (path === "ai-settings" && method === "GET") {
     if (!has(auth,"ai.read")) return json({error:"Ruxsat yetarli emas."},403);
     const settings = await env.DB.prepare("SELECT enabled,provider,model,instructions,updated_at FROM ai_settings WHERE id='default'").first();
-    return json({settings:settings || {enabled:0,provider:"openai",model:"gpt-4o-mini",instructions:""}});
+    return json({settings:settings || {enabled:1,provider:"groq",model:"openai/gpt-oss-20b",instructions:""}});
   }
 
   if (path === "ai-settings" && method === "POST") {
@@ -257,7 +257,7 @@ export async function onRequest({ request, env }) {
     const provider = String(body.provider || "openai");
     const model = String(body.model || "").trim().slice(0,80);
     const instructions = String(body.instructions || "").trim().slice(0,4000);
-    if (provider !== "openai" || !["gpt-4o-mini","gpt-4.1-mini","gpt-4.1"].includes(model)) return json({error:"AI provayderi yoki model tanlovi noto‘g‘ri."},400);
+    if (provider !== "groq" || !["openai/gpt-oss-20b"].includes(model)) return json({error:"Ustoz AI provayderi yoki model tanlovi noto‘g‘ri."},400);
     await env.DB.prepare("INSERT INTO ai_settings (id,enabled,provider,model,instructions,updated_by) VALUES ('default',?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,provider=excluded.provider,model=excluded.model,instructions=excluded.instructions,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP")
       .bind(enabled,provider,model,instructions,auth.user.id).run();
     await audit(env,auth,"ai.settings_updated","ai_settings","default",{enabled,provider,model});

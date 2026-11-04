@@ -16,6 +16,18 @@ const assessmentPrompts = {
   task: "Assess whether the learner's response fulfils the supplied task instructions. Check completeness, relevance, clarity, language quality, and missing requirements. Give an estimated CEFR level only if there is enough English evidence, explain feedback in Uzbek, and suggest improvements. Do not claim official certification.",
 };
 
+const DEFAULT_TUTOR_SETTINGS = { enabled: 1, provider: "groq", model: type === "chat" ? tutorSettings.model : "openai/gpt-oss-20b", instructions: "" };
+
+async function readTutorSettings(env) {
+  if (!env.DB) return DEFAULT_TUTOR_SETTINGS;
+  try {
+    const saved = await env.DB.prepare("SELECT enabled, provider, model, instructions FROM ai_settings WHERE id='default'").first();
+    return saved || DEFAULT_TUTOR_SETTINGS;
+  } catch {
+    throw new Error("Ustoz AI sozlamalarini D1 bazasidan o‘qib bo‘lmadi.");
+  }
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
@@ -25,6 +37,13 @@ export default {
     try {
       const body = await request.json();
       const { type, content, instructions = "", answerKey = "", audioBase64 = "", audioMimeType = "" } = body || {};
+      let tutorSettings = DEFAULT_TUTOR_SETTINGS;
+      if (type === "chat") {
+        try { tutorSettings = await readTutorSettings(env); }
+        catch (error) { return json({ error: error.message }, 503); }
+        if (Number(tutorSettings.enabled) !== 1) return json({ error: "Ustoz AI administrator tomonidan vaqtincha o‘chirib qo‘yilgan." }, 503);
+        if (tutorSettings.provider !== "groq" || tutorSettings.model !== "openai/gpt-oss-20b") return json({ error: "Ustoz AI modeli noto‘g‘ri sozlangan." }, 503);
+      }
       if (!Object.hasOwn(assessmentPrompts, type)) return json({ error: "Tekshiruv turi noto‘g‘ri." }, 400);
       if ((!content || !String(content).trim()) && !audioBase64) return json({ error: "Tekshirish uchun javob yoki audio yuboring." }, 400);
       if (String(content || "").length > 20000) return json({ error: "Matn juda uzun. 20 000 belgidan qisqa matn yuboring." }, 413);
@@ -71,7 +90,9 @@ export default {
         body: JSON.stringify({
           model: "openai/gpt-oss-20b",
           messages: [
-            { role: "system", content: "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
+            { role: "system", content: type === "chat"
+              ? ["You are a friendly, careful English tutor. Continue a natural learning conversation, adapt to the learner's level, use clear language, correct important mistakes gently, and ask one useful follow-up question. The response must be valid JSON with the requested keys.", tutorSettings.instructions ? "ADMINISTRATOR'S USTOZ AI RULES (highest priority):\\n" + String(tutorSettings.instructions).slice(0, 4000) : ""].filter(Boolean).join("\\n\\n")
+              : "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
             { role: "user", content: prompt },
           ],
           response_format: { type: "json_object" },
