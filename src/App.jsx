@@ -60,6 +60,7 @@ function App() {
   const [introDone, setIntroDone] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [authUser, setAuthUser] = useState(null);
+  const [canAccessAdminPanel, setCanAccessAdminPanel] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showPlacementTest, setShowPlacementTest] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -83,6 +84,16 @@ function App() {
     setAuthError('');
     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!authUser) { setCanAccessAdminPanel(false); return () => { cancelled = true; }; }
+    const session = JSON.parse(localStorage.getItem('em-auth-session') || 'null');
+    fetch('/api/admin/me', { headers: { Authorization: 'Bearer ' + (session?.credential || '') } })
+      .then(response => { if (!cancelled) setCanAccessAdminPanel(response.ok); })
+      .catch(() => { if (!cancelled) setCanAccessAdminPanel(false); });
+    return () => { cancelled = true; };
+  }, [authUser]);
 
   const [activePage, setActivePage] = useState('home');
   const navigateTo = (page) => { setActivePage(page); setMobileMenu(false); if (page === 'tutor') setAiTutorOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -292,7 +303,7 @@ function App() {
     return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
   }
 
-  if (isAdmin && activePage === 'admin') return <AdminPanel user={authUser} onExit={() => setActivePage('home')} />;
+  if ((isAdmin || canAccessAdminPanel) && activePage === 'admin') return <AdminPanel user={authUser} onExit={() => setActivePage('home')} />;
 
   if (showWelcome) return <WelcomeIntro user={authUser} onContinue={() => { setShowWelcome(false); if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true); }} />;
   if (showPlacementTest) return <PlacementTest onComplete={(result) => { localStorage.setItem('em-placement-completed', JSON.stringify({ ...result, completedAt: Date.now() })); setShowPlacementTest(false); }} />;
@@ -310,7 +321,7 @@ function App() {
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
-          {isAdmin && <button className={activePage === 'admin' ? 'nav-page active' : 'nav-page'} onClick={() => { setActivePage('admin'); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Admin Panel</button>}
+          {(isAdmin || canAccessAdminPanel) && <button className={activePage === 'admin' ? 'nav-page active' : 'nav-page'} onClick={() => { setActivePage('admin'); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Admin Panel</button>}
           {isAdmin && <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>}
           <button className="nav-page" onClick={() => { setShowProfile(true); setMobileMenu(false); }}>Profil</button>
         </nav>
