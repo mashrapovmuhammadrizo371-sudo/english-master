@@ -186,5 +186,99 @@ export async function onRequest({ request, env }) {
     await audit(env,auth,"admin.revoked","admin",target.google_sub,{email});
     return json({ ok: true });
   }
+
+  // Question bank: answers are returned only to authenticated administrators.
+  if (path.startsWith("exams/") && path.endsWith("/questions") && method === "GET") {
+    if (!has(auth, "exams.read") && !has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const examId = path.split("/")[1];
+    const exam = await env.DB.prepare("SELECT id FROM exams WHERE id=?").bind(examId).first();
+    if (!exam) return json({ error: "Test topilmadi." }, 404);
+    const result = await env.DB.prepare("SELECT id,question_json,answer_key_json,points,sort_order FROM exam_questions WHERE exam_id=? ORDER BY sort_order,id").bind(examId).all();
+    return json({ questions: (result.results || []).map(q => ({ id:q.id, ...JSON.parse(q.question_json || "{}"), correct_answer:JSON.parse(q.answer_key_json || "{}").correct || "", points:q.points })) });
+  }
+
+  if (path.startsWith("exams/") && path.endsWith("/questions") && method === "POST") {
+    if (!has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const examId = path.split("/")[1];
+    const exam = await env.DB.prepare("SELECT id,status FROM exams WHERE id=?").bind(examId).first();
+    if (!exam) return json({ error: "Test topilmadi." }, 404);
+    if (exam.status !== "draft") return json({ error: "Faqat draft testga savol qo‘shish mumkin." }, 409);
+    const body = await request.json().catch(() => ({}));
+    const prompt = String(body.prompt || "").trim().slice(0,1200);
+    const options = Array.isArray(body.options) ? body.options.map(x => String(x).trim().slice(0,240)).filter(Boolean).slice(0,6) : [];
+    const correct = String(body.correct_answer || "").trim().slice(0,240);
+    const points = Number(body.points || 1);
+    if (!prompt || options.length < 2 || options.length > 6 || new Set(options).size !== options.length || !options.includes(correct) || !Number.isFinite(points) || points <= 0 || points > 100) {
+      return json({ error: "Savol matni, 2–6 ta takrorlanmas variant va ulardan biri bo‘lgan to‘g‘ri javobni kiriting." }, 400);
+    }
+    const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM exam_questions WHERE exam_id=?").bind(examId).first();
+    const questionId = id();
+    await env.DB.prepare("INSERT INTO exam_questions (id,exam_id,question_json,answer_key_json,points,sort_order) VALUES (?,?,?,?,?,?)")
+      .bind(questionId,examId,JSON.stringify({prompt,options}),JSON.stringify({correct}),points,count?.count || 0).run();
+    await audit(env,auth,"exam.question_created","exam_question",questionId,{examId});
+    return json({ok:true,id:questionId},201);
+  }
+
+  if (path.startsWith("exam-questions/") && method === "DELETE") {
+    if (!has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const questionId = path.slice("exam-questions/".length);
+    const question = await env.DB.prepare("SELECT q.id,q.exam_id,e.status FROM exam_questions q JOIN exams e ON e.id=q.exam_id WHERE q.id=?").bind(questionId).first();
+    if (!question) return json({error:"Savol topilmadi."},404);
+    if (question.status !== "draft") return json({error:"Nashr qilingan test savollarini o‘zgartirib bo‘lmaydi."},409);
+    await env.DB.prepare("DELETE FROM exam_questions WHERE id=?").bind(questionId).run();
+    await audit(env,auth,"exam.question_deleted","exam_question",questionId,{examId:question.exam_id});
+    return json({ok:true});
+  }
+
+  if (path.startsWith("exams/") && path.endsWith("/publish") && method === "POST") {
+    if (!has(auth, "exams.write")) return json({error:"Ruxsat yetarli emas."},403);
+    const examId = path.split("/")[1];
+    const exam = await env.DB.prepare("SELECT id,status FROM exams WHERE id=?").bind(examId).first();
+    if (!exam) return json({error:"Test topilmadi."},404);
+    const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM exam_questions WHERE exam_id=?").bind(examId).first();
+    if ((count?.count || 0) < 1) return json({error:"Nashr qilishdan oldin kamida bitta savol qo‘shing."},400);
+    await env.DB.prepare("UPDATE exams SET status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(examId).run();
+    await audit(env,auth,"exam.published","exam",examId,{questionCount:count.count});
+    return json({ok:true});
+  }
+
+  if (path === "ai-settings" && method === "GET") {
+    if (!has(auth,"ai.read")) return json({error:"Ruxsat yetarli emas."},403);
+    const settings = await env.DB.prepare("SELECT enabled,provider,model,instructions,updated_at FROM ai_settings WHERE id='default'").first();
+    return json({settings:settings || {enabled:0,provider:"openai",model:"gpt-4o-mini",instructions:""}});
+  }
+
+  if (path === "ai-settings" && method === "POST") {
+    if (auth.role !== "super_admin") return json({error:"AI sozlamalarini faqat Super Admin o‘zgartiradi."},403);
+    const body = await request.json().catch(()=>({}));
+    const enabled = body.enabled === true ? 1 : 0;
+    const provider = String(body.provider || "openai");
+    const model = String(body.model || "").trim().slice(0,80);
+    const instructions = String(body.instructions || "").trim().slice(0,4000);
+    if (provider !== "openai" || !["gpt-4o-mini","gpt-4.1-mini","gpt-4.1"].includes(model)) return json({error:"AI provayderi yoki model tanlovi noto‘g‘ri."},400);
+    await env.DB.prepare("INSERT INTO ai_settings (id,enabled,provider,model,instructions,updated_by) VALUES ('default',?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,provider=excluded.provider,model=excluded.model,instructions=excluded.instructions,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP")
+      .bind(enabled,provider,model,instructions,auth.user.id).run();
+    await audit(env,auth,"ai.settings_updated","ai_settings","default",{enabled,provider,model});
+    return json({ok:true});
+  }
+
+  if (path === "payment-settings" && method === "GET") {
+    if (!has(auth,"payments.read")) return json({error:"Ruxsat yetarli emas."},403);
+    const settings = await env.DB.prepare("SELECT mode,provider,updated_at FROM payment_settings WHERE id='default'").first();
+    return json({settings:settings || {mode:"disabled",provider:"manual"},live_payments_enabled:false});
+  }
+
+  if (path === "payment-settings" && method === "POST") {
+    if (auth.role !== "super_admin") return json({error:"To‘lov sozlamalarini faqat Super Admin o‘zgartiradi."},403);
+    const body = await request.json().catch(()=>({}));
+    const mode = String(body.mode || "disabled");
+    const provider = String(body.provider || "manual");
+    if (!["disabled","test"].includes(mode) || !["manual","click","payme"].includes(provider)) return json({error:"Faqat o‘chirilgan yoki test rejimini tanlash mumkin."},400);
+    await env.DB.prepare("INSERT INTO payment_settings (id,mode,provider,updated_by) VALUES ('default',?,?,?) ON CONFLICT(id) DO UPDATE SET mode=excluded.mode,provider=excluded.provider,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP")
+      .bind(mode,provider,auth.user.id).run();
+    await audit(env,auth,"payment.test_settings_updated","payment_settings","default",{mode,provider});
+    return json({ok:true,live_payments_enabled:false});
+  }
+
   return json({ error: "Admin API yo‘li topilmadi." }, 404);
 }
