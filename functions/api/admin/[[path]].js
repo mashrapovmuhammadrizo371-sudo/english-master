@@ -94,11 +94,11 @@ export async function onRequest({ request, env }) {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || "").trim().toLowerCase();
     const permissions = Array.isArray(body.permissions) ? [...new Set(body.permissions.filter(p => ALLOWED_PERMISSIONS.includes(p)))] : [];
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === "__super_admin__") return json({ error: "Admin email manzilini tekshiring." }, 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === auth.user.email.toLowerCase()) return json({ error: "Admin email manzilini tekshiring." }, 400);
     const target = await env.DB.prepare("SELECT google_sub FROM users WHERE lower(email)=?").bind(email).first();
     if (!target) return json({ error: "Bu foydalanuvchi hali Google orqali saytga kirmagan. Avval bir marta kirishi kerak." }, 404);
     await env.DB.prepare("INSERT INTO admin_roles (google_sub,role,permissions_json,created_by) VALUES (?,'admin',?,?) ON CONFLICT(google_sub) DO UPDATE SET permissions_json=excluded.permissions_json,updated_at=CURRENT_TIMESTAMP")
-      .bind(target.google_sub,JSON.stringify(permissions),auth.user.sub).run();
+      .bind(target.google_sub,JSON.stringify(permissions),auth.user.id).run();
     await audit(env,auth,"admin.permissions_updated","admin",target.google_sub,{email,permissions});
     return json({ ok: true });
   }
