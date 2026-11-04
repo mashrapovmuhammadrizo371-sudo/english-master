@@ -102,8 +102,13 @@ export default function AdminPanel({ user, onExit }) {
         const result=await api('courses'); setCourses(result.courses||[]); const lessonPairs=await Promise.all((result.courses||[]).map(async course=>[course.id,(await api('courses/'+course.id+'/lessons')).lessons||[]])); setLessonsByCourse(Object.fromEntries(lessonPairs));
       } else if(section==='exams'){
         const result=await api('exams'); setExams(result.exams||[]);
+        const pairs=await Promise.all((result.exams||[]).map(async exam=>[exam.id,(await api('exams/'+exam.id+'/questions')).questions||[]]));
+        setQuestionsByExam(Object.fromEntries(pairs));
       } else if(section==='payments'){
-        const [result,planResult]=await Promise.all([api('payments'),api('plans')]); setPayments(result.payments||[]); setPlans(planResult.plans||[]);
+        const [result,planResult,settingsResult]=await Promise.all([api('payments'),api('plans'),api('payment-settings')]);
+        setPayments(result.payments||[]); setPlans(planResult.plans||[]); setPaymentSettings(settingsResult.settings||{mode:'disabled',provider:'manual'});
+      } else if(section==='ai'){
+        const result=await api('ai-settings'); setAiSettings(result.settings||{enabled:0,provider:'openai',model:'gpt-4o-mini',instructions:''});
       } else if(section==='security' && me.role==='super_admin'){
         const [result,logs]=await Promise.all([api('admins'),api('audit')]); setAdmins(result.admins||[]); setAuditEvents(logs.events||[]);
       }
