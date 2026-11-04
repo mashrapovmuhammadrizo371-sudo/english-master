@@ -189,10 +189,14 @@ export default function AdminPanel({ user, onExit }) {
     setBossBusy(true);
     setBossError('');
     try {
+      const session = JSON.parse(localStorage.getItem('em-auth-session') || 'null');
+      if (!session?.credential) {
+        throw new Error('Ustoz AI boshqaruv chati uchun Google Super Admin orqali kirish kerak.');
+      }
       const response = await fetch('https://english-master-assessment.mashrapovmuhammadrizo371.workers.dev', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'admin_chat', messages: nextMessages })
+        body: JSON.stringify({ type: 'admin_chat', credential: session.credential, messages: nextMessages })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Ustoz AI bilan bog‘lanib bo‘lmadi.');
