@@ -27,7 +27,8 @@ async function authenticate(request,env) {
 }
 const has = (auth, permission) => auth.role === "super_admin" || auth.permissions.includes("*") || auth.permissions.includes(permission);
 async function audit(env, auth, action, type, resourceId = null, details = {}) {
-  if (!auth.user?.id) return; // Password sessions have no Google subject for the audit foreign key.\n  await env.DB.prepare("INSERT INTO admin_audit_logs (id,actor_google_sub,action,resource_type,resource_id,details_json) VALUES (?,?,?,?,?,?)")
+  if (!auth.user?.id) return; // Password sessions have no Google subject for the audit foreign key.
+  await env.DB.prepare("INSERT INTO admin_audit_logs (id,actor_google_sub,action,resource_type,resource_id,details_json) VALUES (?,?,?,?,?,?)")
     .bind(id(), auth.user.id, action, type, resourceId, JSON.stringify(details)).run();
 }
 
