@@ -89,6 +89,44 @@ export async function onRequest({ request, env }) {
     return json({ exams: result.results || [] });
   }
 
+  if (path === "exams" && method === "POST") {
+    if (!has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const body = await request.json().catch(() => ({}));
+    const level = String(body.level || "").toUpperCase();
+    const title = String(body.title || "").trim().slice(0,120);
+    const duration = Number(body.duration_seconds || 0);
+    const pass = Number(body.pass_percent || 80);
+    if (!["A1","A2","B1","B2","C1","C2"].includes(level) || !title || !Number.isInteger(duration) || duration < 60 || duration > 14400 || !Number.isInteger(pass) || pass < 1 || pass > 100) {
+      return json({ error: "Test nomi, darajasi, davomiyligi yoki o‘tish foizini tekshiring." }, 400);
+    }
+    const examId = id();
+    await env.DB.prepare("INSERT INTO exams (id,title,level,duration_seconds,pass_percent,status) VALUES (?,?,?,?,?,'draft')").bind(examId,title,level,duration,pass).run();
+    await audit(env,auth,"exam.created","exam",examId,{title,level,duration,pass});
+    return json({ ok: true, id: examId }, 201);
+  }
+
+  if (path.startsWith("courses/") && path.endsWith("/lessons") && method === "GET") {
+    if (!has(auth, "courses.read") && !has(auth, "courses.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const courseId = path.split("/")[1];
+    const result = await env.DB.prepare("SELECT id,title,status,sort_order,created_at FROM lessons WHERE course_id=? ORDER BY sort_order,title").bind(courseId).all();
+    return json({ lessons: result.results || [] });
+  }
+
+  if (path.startsWith("courses/") && path.endsWith("/lessons") && method === "POST") {
+    if (!has(auth, "courses.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const courseId = path.split("/")[1];
+    const course = await env.DB.prepare("SELECT id FROM courses WHERE id=?").bind(courseId).first();
+    if (!course) return json({ error: "Kurs topilmadi." }, 404);
+    const body = await request.json().catch(() => ({}));
+    const title = String(body.title || "").trim().slice(0,120);
+    const content = String(body.content || "").trim().slice(0,10000);
+    if (!title) return json({ error: "Dars nomini kiriting." }, 400);
+    const lessonId = id();
+    await env.DB.prepare("INSERT INTO lessons (id,course_id,title,content_json,status) VALUES (?,?,?,?,'draft')").bind(lessonId,courseId,title,JSON.stringify({text:content})).run();
+    await audit(env,auth,"lesson.created","lesson",lessonId,{courseId,title});
+    return json({ ok: true, id: lessonId }, 201);
+  }
+
   if (path === "payments" && method === "GET") {
     if (!has(auth, "payments.read")) return json({ error: "Ruxsat yetarli emas." }, 403);
     const result = await env.DB.prepare("SELECT p.id,u.email,p.amount_minor,p.currency,p.status,p.created_at FROM payment_transactions p JOIN users u ON u.google_sub=p.google_sub ORDER BY p.created_at DESC LIMIT 200").all();
@@ -99,6 +137,18 @@ export async function onRequest({ request, env }) {
     if (!has(auth, "payments.read")) return json({ error: "Ruxsat yetarli emas." }, 403);
     const result = await env.DB.prepare("SELECT id,name,price_minor,currency,features_json,status FROM plans ORDER BY created_at DESC").all();
     return json({ plans: result.results || [] });
+  }
+
+  if (path === "plans" && method === "POST") {
+    if (auth.role !== "super_admin") return json({ error: "Tariflarni faqat Super Admin yaratadi." }, 403);
+    const body = await request.json().catch(() => ({}));
+    const name = String(body.name || "").trim().slice(0,80);
+    const price = Number(body.price_minor);
+    if (!name || !Number.isInteger(price) || price < 0 || price > 100000000000) return json({ error: "Tarif nomi yoki narxini tekshiring." }, 400);
+    const planId = id();
+    await env.DB.prepare("INSERT INTO plans (id,name,price_minor,currency,features_json,status) VALUES (?,?,?,'UZS',?,'draft')").bind(planId,name,price,JSON.stringify(Array.isArray(body.features)?body.features.slice(0,20):[])).run();
+    await audit(env,auth,"plan.created","plan",planId,{name,price});
+    return json({ ok: true, id: planId }, 201);
   }
 
   if (path === "audit" && method === "GET") {
