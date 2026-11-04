@@ -5,6 +5,7 @@ import {
   Activity, Sparkles, RefreshCw, ShieldCheck, Trash2
 } from 'lucide-react';
 import './admin-panel.css';
+import './admin-panel-data.css';
 
 const sections = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
