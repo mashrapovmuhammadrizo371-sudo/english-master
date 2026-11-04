@@ -110,3 +110,21 @@ CREATE INDEX IF NOT EXISTS idx_questions_exam_sort ON exam_questions(exam_id, so
 CREATE INDEX IF NOT EXISTS idx_attempts_user_started ON exam_attempts(google_sub, started_at);
 CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payment_transactions(google_sub, created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_actor_created ON admin_audit_logs(actor_google_sub, created_at);
+
+CREATE TABLE IF NOT EXISTS ai_settings (
+  id TEXT PRIMARY KEY CHECK (id = 'default'),
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0,1)),
+  provider TEXT NOT NULL DEFAULT 'openai',
+  model TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+  instructions TEXT NOT NULL DEFAULT '',
+  updated_by TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payment_settings (
+  id TEXT PRIMARY KEY CHECK (id = 'default'),
+  mode TEXT NOT NULL DEFAULT 'disabled' CHECK (mode IN ('disabled','test')),
+  provider TEXT NOT NULL DEFAULT 'manual' CHECK (provider IN ('manual','click','payme')),
+  updated_by TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
