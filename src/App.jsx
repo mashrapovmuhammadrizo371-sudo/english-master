@@ -74,7 +74,18 @@ function App() {
     if (!response.ok || !data.ok || !data.user) throw new Error(data.error || 'Google hisobni tekshirib bo‘lmadi.');
     localStorage.setItem('em-auth-session', JSON.stringify({ credential, expiresAt: data.expiresAt, user: data.user }));
     setAuthUser(data.user);
-    setShowWelcome(true);
+    try {
+      const welcomeResponse = await fetch('/api/profile/welcome', {
+        headers: { Authorization: 'Bearer ' + credential },
+        cache: 'no-store'
+      });
+      if (!welcomeResponse.ok) throw new Error('Welcome holatini tekshirib bo‘lmadi.');
+      const welcomeStatus = await welcomeResponse.json();
+      setShowWelcome(!welcomeStatus.seen);
+    } catch {
+      // Keep sign-in available if the profile endpoint is temporarily unavailable.
+      setShowWelcome(true);
+    }
     setAuthError('');
     return data.user;
   };
@@ -307,7 +318,23 @@ function App() {
 
   if ((isAdmin || canAccessAdminPanel) && activePage === 'admin') return <AdminPanel user={authUser} onExit={() => setActivePage('home')} />;
 
-  if (showWelcome) return <WelcomeIntro user={authUser} onContinue={() => { setShowWelcome(false); if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true); }} />;
+  const continueWelcome = async () => {
+    const session = JSON.parse(localStorage.getItem('em-auth-session') || 'null');
+    try {
+      if (session?.credential) {
+        await fetch('/api/profile/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.credential },
+          body: JSON.stringify({ seen: true })
+        });
+      }
+    } finally {
+      localStorage.setItem('em-welcome-seen', 'true');
+      setShowWelcome(false);
+      if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true);
+    }
+  };
+  if (showWelcome) return <WelcomeIntro user={authUser} onContinue={continueWelcome} />;
   if (showPlacementTest) return <PlacementTest onComplete={(result) => { localStorage.setItem('em-placement-completed', JSON.stringify({ ...result, completedAt: Date.now() })); setShowPlacementTest(false); }} />;
 
   return (
