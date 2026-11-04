@@ -37,6 +37,31 @@ export default {
     try {
       const body = await request.json();
       const { type, content, instructions = "", answerKey = "", audioBase64 = "", audioMimeType = "" } = body || {};
+      if (type === "admin_chat") {
+        const history = Array.isArray(body.messages) ? body.messages.slice(-16).map(item => ({
+          role: item?.role === "assistant" ? "assistant" : "user",
+          content: String(item?.content || "").trim().slice(0, 4000)
+        })).filter(item => item.content) : [];
+        if (!history.length || history.length > 16) return json({ error: "Suhbat xabarlari noto‘g‘ri." }, 400);
+        const chatResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + env.GROQ_API_KEY },
+          body: JSON.stringify({
+            model: "openai/gpt-oss-20b",
+            messages: [
+              { role: "system", content: "Siz ENGLISH MASTER loyihasidagi mavjud Ustoz AI’siz. Siz bilan suhbatlashayotgan shaxs loyiha rahbari (Boss). Unga hurmat bilan, asosan o‘zbek tilida, aniq va amaliy javob bering. Uning ko‘rsatmalarini tushuning, savollariga javob bering, reja va tavsiyalar bering. Sizda sayt, GitHub, Cloudflare yoki ma’lumotlar bazasini boshqarish vositalari yo‘q: bajarmagan amalingizni bajardim deb aytmang, kod yoki sozlamalarni o‘zgartira olishingizni da’vo qilmang. O‘zgarish kerak bo‘lsa, nima o‘zgartirilishi kerakligini tushuntiring va rahbar tasdig‘i zarurligini ayting. Maxfiy kalitlar, parollar yoki tokenlarni so‘ramang va takrorlamang." },
+              ...history
+            ],
+            temperature: 0.4,
+            max_tokens: 900
+          })
+        });
+        const chatData = await chatResponse.json().catch(() => ({}));
+        if (!chatResponse.ok) return json({ error: chatResponse.status === 429 ? "Groq API limiti vaqtincha tugagan." : "Ustoz AI hozir javob bera olmadi. Keyinroq qayta urinib ko‘ring." }, chatResponse.status === 429 ? 429 : 502);
+        const reply = chatData?.choices?.[0]?.message?.content?.trim();
+        if (!reply) return json({ error: "Ustoz AI bo‘sh javob qaytardi." }, 502);
+        return json({ reply });
+      }
       let tutorSettings = DEFAULT_TUTOR_SETTINGS;
       if (type === "chat") {
         try { tutorSettings = await readTutorSettings(env); }
