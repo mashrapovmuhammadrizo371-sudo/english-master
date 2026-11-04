@@ -6,6 +6,7 @@ import BrandIntro from './BrandIntro.jsx';
 import WelcomeIntro from './WelcomeIntro.jsx';
 import PlacementTest from './PlacementTest.jsx';
 import TutorChat from './TutorChat.jsx';
+import AdminPanel from './AdminPanel.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
 const readingPassages = [
@@ -291,6 +292,8 @@ function App() {
     return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
   }
 
+  if (isAdmin && activePage === 'admin') return <AdminPanel user={authUser} onExit={() => setActivePage('home')} />;
+
   if (showWelcome) return <WelcomeIntro user={authUser} onContinue={() => { setShowWelcome(false); if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true); }} />;
   if (showPlacementTest) return <PlacementTest onComplete={(result) => { localStorage.setItem('em-placement-completed', JSON.stringify({ ...result, completedAt: Date.now() })); setShowPlacementTest(false); }} />;
 
@@ -307,6 +310,7 @@ function App() {
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
+          {isAdmin && <button className={activePage === 'admin' ? 'nav-page active' : 'nav-page'} onClick={() => { setActivePage('admin'); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Admin Panel</button>}
           {isAdmin && <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>}
           <button className="nav-page" onClick={() => { setShowProfile(true); setMobileMenu(false); }}>Profil</button>
         </nav>
