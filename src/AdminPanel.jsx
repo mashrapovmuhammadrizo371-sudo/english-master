@@ -85,7 +85,7 @@ export default function AdminPanel({ user, onExit }) {
     const response = await fetch('/api/admin/'+path,{
       ...options,
       credentials:'same-origin',
-      headers:{'Content-Type':'application/json',...(options.headers||{})}
+      headers:{'Content-Type':'application/json',...(token && token!=='cookie-session'?{Authorization:'Bearer '+token}:{}),...(options.headers||{})}
     });
     const data = await response.json().catch(()=>({}));
     if(!response.ok) throw new Error(data.error || 'Server bilan bog‘lanib bo‘lmadi.');
@@ -120,9 +120,10 @@ export default function AdminPanel({ user, onExit }) {
   };
   useEffect(()=>{
     let active=true;
+    if(user){try{const session=JSON.parse(localStorage.getItem('em-auth-session')||'null');if(session?.credential&&active)setToken(session.credential);}catch{}setLoading(false);return()=>{active=false;};}
     fetch('/api/admin/me',{credentials:'same-origin'}).then(response=>{if(response.ok&&active)setToken('cookie-session');}).catch(()=>{}).finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;};
-  },[]);
+  },[user]);
   useEffect(()=>{if(token) load('overview');},[token]);
   const loginAdmin=async(event)=>{
     event.preventDefault(); if(!loginPassword||loginBusy)return;
