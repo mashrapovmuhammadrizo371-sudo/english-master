@@ -1,4 +1,3 @@
-const CLIENT_ID = "574848907767-gp77d9j9f7pb4ri1t9v06hq959vjs17c.apps.googleusercontent.com";
 const ALLOWED_PERMISSIONS = ["students.read","courses.read","courses.write","exams.read","exams.write","payments.read","ai.read","settings.read"];
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -11,22 +10,22 @@ async function authenticate(request, env) {
   const header = request.headers.get("Authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return { error: json({ error: "Kirish tokeni topilmadi." }, 401) };
-  const response = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(token));
-  if (!response.ok) return { error: json({ error: "Google token haqiqiy emas yoki muddati tugagan." }, 401) };
-  const user = await response.json();
-  if (user.aud !== CLIENT_ID || user.email_verified !== "true" || !user.sub || !user.email) {
-    return { error: json({ error: "Google hisobni tasdiqlash muvaffaqiyatsiz." }, 401) };
+  // Delegate Google-token verification and Super Admin recognition to the existing
+  // authentication Worker, which already validates issuer, audience, expiry and ADMIN_EMAIL.
+  const response = await fetch("https://english-master-auth.mashrapovmuhammadrizo371.workers.dev/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential: token })
+  });
+  const verified = await response.json().catch(() => ({}));
+  if (!response.ok || !verified.ok || !verified.user?.id || !verified.user?.email) {
+    return { error: json({ error: "Google hisobni serverda tasdiqlab bo‘lmadi." }, 401) };
   }
-  if (!env.SUPER_ADMIN_EMAIL) return { error: json({ error: "SUPER_ADMIN_EMAIL server sozlamasiga kiritilmagan." }, 503) };
-  const email = user.email.toLowerCase();
-  const superEmail = env.SUPER_ADMIN_EMAIL.toLowerCase();
-  await env.DB.prepare(
-    "INSERT INTO users (google_sub,email,name,picture,last_login_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(google_sub) DO UPDATE SET email=excluded.email,name=excluded.name,picture=excluded.picture,last_login_at=CURRENT_TIMESTAMP"
-  ).bind(user.sub, email, user.name || email, user.picture || "").run();
-  if (email === superEmail) return { user, role: "super_admin", permissions: ["*"] };
+  const user = verified.user;
+  if (user.isAdmin) return { user, role: "super_admin", permissions: ["*"] };
   const delegated = await env.DB.prepare(
     "SELECT ar.role,ar.permissions_json FROM admin_roles ar JOIN users u ON u.google_sub=ar.google_sub WHERE lower(u.email)=?"
-  ).bind(email).first();
+  ).bind(user.email.toLowerCase()).first();
   if (!delegated) return { error: json({ error: "Admin huquqi yo‘q." }, 403) };
   let permissions = [];
   try { permissions = JSON.parse(delegated.permissions_json || "[]"); } catch {}
@@ -35,7 +34,7 @@ async function authenticate(request, env) {
 const has = (auth, permission) => auth.role === "super_admin" || auth.permissions.includes("*") || auth.permissions.includes(permission);
 async function audit(env, auth, action, type, resourceId = null, details = {}) {
   await env.DB.prepare("INSERT INTO admin_audit_logs (id,actor_google_sub,action,resource_type,resource_id,details_json) VALUES (?,?,?,?,?,?)")
-    .bind(id(), auth.user.sub, action, type, resourceId, JSON.stringify(details)).run();
+    .bind(id(), auth.user.id, action, type, resourceId, JSON.stringify(details)).run();
 }
 
 export async function onRequest({ request, env }) {
@@ -95,7 +94,7 @@ export async function onRequest({ request, env }) {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || "").trim().toLowerCase();
     const permissions = Array.isArray(body.permissions) ? [...new Set(body.permissions.filter(p => ALLOWED_PERMISSIONS.includes(p)))] : [];
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === env.SUPER_ADMIN_EMAIL.toLowerCase()) return json({ error: "Admin email manzilini tekshiring." }, 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === "__super_admin__") return json({ error: "Admin email manzilini tekshiring." }, 400);
     const target = await env.DB.prepare("SELECT google_sub FROM users WHERE lower(email)=?").bind(email).first();
     if (!target) return json({ error: "Bu foydalanuvchi hali Google orqali saytga kirmagan. Avval bir marta kirishi kerak." }, 404);
     await env.DB.prepare("INSERT INTO admin_roles (google_sub,role,permissions_json,created_by) VALUES (?,'admin',?,?) ON CONFLICT(google_sub) DO UPDATE SET permissions_json=excluded.permissions_json,updated_at=CURRENT_TIMESTAMP")
