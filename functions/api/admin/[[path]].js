@@ -50,12 +50,12 @@ export async function onRequest({ request, env }) {
   if (path === "summary" && method === "GET") {
     if (auth.role !== "super_admin" && !has(auth, "students.read")) return json({ error: "Ruxsat yetarli emas." }, 403);
     const [students,courses,exams,payments] = await Promise.all([
-      env.DB.prepare("SELECT COUNT(*) AS count FROM users").first(),
-      env.DB.prepare("SELECT COUNT(*) AS count FROM courses WHERE status='published'").first(),
-      env.DB.prepare("SELECT COUNT(*) AS count FROM exam_attempts").first(),
-      env.DB.prepare("SELECT COUNT(*) AS count FROM payment_transactions WHERE status='paid'").first()
+      has(auth,"students.read") ? env.DB.prepare("SELECT COUNT(*) AS count FROM users").first() : null,
+      has(auth,"courses.read") ? env.DB.prepare("SELECT COUNT(*) AS count FROM courses WHERE status='published'").first() : null,
+      has(auth,"exams.read") ? env.DB.prepare("SELECT COUNT(*) AS count FROM exam_attempts").first() : null,
+      has(auth,"payments.read") ? env.DB.prepare("SELECT COUNT(*) AS count FROM payment_transactions WHERE status='paid'").first() : null
     ]);
-    return json({ students: students.count, courses: courses.count, attempts: exams.count, payments: payments.count });
+    return json({ students: students?.count ?? null, courses: courses?.count ?? null, attempts: exams?.count ?? null, payments: payments?.count ?? null });
   }
 
   if (path === "students" && method === "GET") {
@@ -81,6 +81,30 @@ export async function onRequest({ request, env }) {
     await env.DB.prepare("INSERT INTO courses (id,level,title,description,status) VALUES (?,?,?,?, 'draft')").bind(courseId,level,title,description).run();
     await audit(env,auth,"course.created","course",courseId,{level,title});
     return json({ ok: true, id: courseId }, 201);
+  }
+
+  if (path === "exams" && method === "GET") {
+    if (!has(auth, "exams.read") && !has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const result = await env.DB.prepare("SELECT id,title,level,duration_seconds,pass_percent,status,created_at FROM exams ORDER BY created_at DESC LIMIT 200").all();
+    return json({ exams: result.results || [] });
+  }
+
+  if (path === "payments" && method === "GET") {
+    if (!has(auth, "payments.read")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const result = await env.DB.prepare("SELECT p.id,u.email,p.amount_minor,p.currency,p.status,p.created_at FROM payment_transactions p JOIN users u ON u.google_sub=p.google_sub ORDER BY p.created_at DESC LIMIT 200").all();
+    return json({ payments: result.results || [] });
+  }
+
+  if (path === "plans" && method === "GET") {
+    if (!has(auth, "payments.read")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    const result = await env.DB.prepare("SELECT id,name,price_minor,currency,features_json,status FROM plans ORDER BY created_at DESC").all();
+    return json({ plans: result.results || [] });
+  }
+
+  if (path === "audit" && method === "GET") {
+    if (auth.role !== "super_admin") return json({ error: "Audit jurnalini faqat Super Admin ko‘ra oladi." }, 403);
+    const result = await env.DB.prepare("SELECT a.action,a.resource_type,a.resource_id,a.details_json,a.created_at,u.email FROM admin_audit_logs a JOIN users u ON u.google_sub=a.actor_google_sub ORDER BY a.created_at DESC LIMIT 100").all();
+    return json({ events: result.results || [] });
   }
 
   if (path === "admins" && method === "GET") {
