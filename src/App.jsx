@@ -6,6 +6,7 @@ import BrandIntro from './BrandIntro.jsx';
 import WelcomeIntro from './WelcomeIntro.jsx';
 import PlacementTest from './PlacementTest.jsx';
 import TutorChat from './TutorChat.jsx';
+import AdminPanel from './AdminPanel.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
 const readingPassages = [
@@ -59,6 +60,7 @@ function App() {
   const [introDone, setIntroDone] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [authUser, setAuthUser] = useState(null);
+  const [canAccessAdminPanel, setCanAccessAdminPanel] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showPlacementTest, setShowPlacementTest] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -72,7 +74,18 @@ function App() {
     if (!response.ok || !data.ok || !data.user) throw new Error(data.error || 'Google hisobni tekshirib bo‘lmadi.');
     localStorage.setItem('em-auth-session', JSON.stringify({ credential, expiresAt: data.expiresAt, user: data.user }));
     setAuthUser(data.user);
-    setShowWelcome(true);
+    try {
+      const welcomeResponse = await fetch('/api/profile/welcome', {
+        headers: { Authorization: 'Bearer ' + credential },
+        cache: 'no-store'
+      });
+      if (!welcomeResponse.ok) throw new Error('Welcome holatini tekshirib bo‘lmadi.');
+      const welcomeStatus = await welcomeResponse.json();
+      setShowWelcome(!welcomeStatus.seen);
+    } catch {
+      // Keep sign-in available if the profile endpoint is temporarily unavailable.
+      setShowWelcome(true);
+    }
     setAuthError('');
     return data.user;
   };
@@ -82,6 +95,16 @@ function App() {
     setAuthError('');
     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!authUser) { setCanAccessAdminPanel(false); return () => { cancelled = true; }; }
+    const session = JSON.parse(localStorage.getItem('em-auth-session') || 'null');
+    fetch('/api/admin/me', { headers: { Authorization: 'Bearer ' + (session?.credential || '') } })
+      .then(response => { if (!cancelled) setCanAccessAdminPanel(response.ok); })
+      .catch(() => { if (!cancelled) setCanAccessAdminPanel(false); });
+    return () => { cancelled = true; };
+  }, [authUser]);
 
   const [activePage, setActivePage] = useState('home');
   const navigateTo = (page) => { setActivePage(page); setMobileMenu(false); if (page === 'tutor') setAiTutorOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -282,6 +305,8 @@ function App() {
   })();
 
 
+  if (window.location.pathname.replace(/\/+$/, '') === '/admin') return <AdminPanel user={null} onExit={() => { window.location.href = '/'; }} />;
+
   if (!introDone) return <BrandIntro onComplete={() => setIntroDone(true)} />;
 
   if (authChecking) {
@@ -291,7 +316,25 @@ function App() {
     return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
   }
 
-  if (showWelcome) return <WelcomeIntro user={authUser} onContinue={() => { setShowWelcome(false); if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true); }} />;
+  if ((isAdmin || canAccessAdminPanel) && activePage === 'admin') return <AdminPanel user={authUser} onExit={() => setActivePage('home')} />;
+
+  const continueWelcome = async () => {
+    const session = JSON.parse(localStorage.getItem('em-auth-session') || 'null');
+    try {
+      if (session?.credential) {
+        await fetch('/api/profile/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.credential },
+          body: JSON.stringify({ seen: true })
+        });
+      }
+    } finally {
+      localStorage.setItem('em-welcome-seen', 'true');
+      setShowWelcome(false);
+      if (!localStorage.getItem('em-placement-completed')) setShowPlacementTest(true);
+    }
+  };
+  if (showWelcome) return <WelcomeIntro user={authUser} onContinue={continueWelcome} />;
   if (showPlacementTest) return <PlacementTest onComplete={(result) => { localStorage.setItem('em-placement-completed', JSON.stringify({ ...result, completedAt: Date.now() })); setShowPlacementTest(false); }} />;
 
   return (
@@ -307,6 +350,7 @@ function App() {
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
+          {(isAdmin || canAccessAdminPanel) && <button className={activePage === 'admin' ? 'nav-page active' : 'nav-page'} onClick={() => { setActivePage('admin'); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Admin Panel</button>}
           {isAdmin && <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>}
           <button className="nav-page" onClick={() => { setShowProfile(true); setMobileMenu(false); }}>Profil</button>
         </nav>

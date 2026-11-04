@@ -16,6 +16,18 @@ const assessmentPrompts = {
   task: "Assess whether the learner's response fulfils the supplied task instructions. Check completeness, relevance, clarity, language quality, and missing requirements. Give an estimated CEFR level only if there is enough English evidence, explain feedback in Uzbek, and suggest improvements. Do not claim official certification.",
 };
 
+const DEFAULT_TUTOR_SETTINGS = { enabled: 1, provider: "groq", model: "openai/gpt-oss-20b", instructions: "" };
+
+async function readTutorSettings(env) {
+  if (!env.DB) return DEFAULT_TUTOR_SETTINGS;
+  try {
+    const saved = await env.DB.prepare("SELECT enabled, provider, model, instructions FROM ai_settings WHERE id='default'").first();
+    return saved || DEFAULT_TUTOR_SETTINGS;
+  } catch {
+    throw new Error("Ustoz AI sozlamalarini D1 bazasidan o‘qib bo‘lmadi.");
+  }
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
@@ -25,6 +37,57 @@ export default {
     try {
       const body = await request.json();
       const { type, content, instructions = "", answerKey = "", audioBase64 = "", audioMimeType = "" } = body || {};
+      if (type === "admin_chat") {
+        const credential = String(body.credential || "");
+        if (!credential || credential.length > 10000) {
+          return json({ error: "Admin Google sessiyasi talab qilinadi." }, 401);
+        }
+        const authResponse = await fetch("https://english-master-auth.mashrapovmuhammadrizo371.workers.dev/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential }),
+        });
+        const authResult = await authResponse.json().catch(() => ({}));
+        if (!authResponse.ok || !authResult.ok || !authResult.user?.id) {
+          return json({ error: "Google sessiyasini tasdiqlab bo‘lmadi." }, 401);
+        }
+        if (authResult.user.isAdmin !== true) {
+          return json({ error: "Ustoz AI boshqaruv chatiga faqat Super Admin kira oladi." }, 403);
+        }
+
+        const history = Array.isArray(body.messages) ? body.messages.slice(-16).map(item => ({
+          role: item?.role === "assistant" ? "assistant" : "user",
+          content: String(item?.content || "").trim().slice(0, 4000)
+        })).filter(item => item.content) : [];
+        if (!history.length || history.reduce((sum, item) => sum + item.content.length, 0) > 20000) {
+          return json({ error: "Suhbat xabarlari noto‘g‘ri yoki juda uzun." }, 400);
+        }
+        const chatResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + env.GROQ_API_KEY },
+          body: JSON.stringify({
+            model: "openai/gpt-oss-20b",
+            messages: [
+              { role: "system", content: "Siz ENGLISH MASTER loyihasidagi mavjud Ustoz AI’siz. Siz bilan suhbatlashayotgan shaxs loyiha rahbari (Boss). Unga hurmat bilan, asosan o‘zbek tilida, aniq va amaliy javob bering. Uning ko‘rsatmalarini tushuning, savollariga javob bering, reja va tavsiyalar bering. Sizda sayt, GitHub, Cloudflare yoki ma’lumotlar bazasini boshqarish vositalari yo‘q: bajarmagan amalingizni bajardim deb aytmang, kod yoki sozlamalarni o‘zgartira olishingizni da’vo qilmang. O‘zgarish kerak bo‘lsa, nima o‘zgartirilishi kerakligini tushuntiring va rahbar tasdig‘i zarurligini ayting. Maxfiy kalitlar, parollar yoki tokenlarni so‘ramang va takrorlamang." },
+              ...history
+            ],
+            temperature: 0.4,
+            max_tokens: 900
+          })
+        });
+        const chatData = await chatResponse.json().catch(() => ({}));
+        if (!chatResponse.ok) return json({ error: chatResponse.status === 429 ? "Groq API limiti vaqtincha tugagan." : "Ustoz AI hozir javob bera olmadi. Keyinroq qayta urinib ko‘ring." }, chatResponse.status === 429 ? 429 : 502);
+        const reply = chatData?.choices?.[0]?.message?.content?.trim();
+        if (!reply) return json({ error: "Ustoz AI bo‘sh javob qaytardi." }, 502);
+        return json({ reply });
+      }
+      let tutorSettings = DEFAULT_TUTOR_SETTINGS;
+      if (type === "chat") {
+        try { tutorSettings = await readTutorSettings(env); }
+        catch (error) { return json({ error: error.message }, 503); }
+        if (Number(tutorSettings.enabled) !== 1) return json({ error: "Ustoz AI administrator tomonidan vaqtincha o‘chirib qo‘yilgan." }, 503);
+        if (tutorSettings.provider !== "groq" || tutorSettings.model !== "openai/gpt-oss-20b") return json({ error: "Ustoz AI modeli noto‘g‘ri sozlangan." }, 503);
+      }
       if (!Object.hasOwn(assessmentPrompts, type)) return json({ error: "Tekshiruv turi noto‘g‘ri." }, 400);
       if ((!content || !String(content).trim()) && !audioBase64) return json({ error: "Tekshirish uchun javob yoki audio yuboring." }, 400);
       if (String(content || "").length > 20000) return json({ error: "Matn juda uzun. 20 000 belgidan qisqa matn yuboring." }, 413);
@@ -69,9 +132,11 @@ export default {
           Authorization: "Bearer " + env.GROQ_API_KEY,
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b",
+          model: type === "chat" ? tutorSettings.model : "openai/gpt-oss-20b",
           messages: [
-            { role: "system", content: "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
+            { role: "system", content: type === "chat"
+              ? ["You are a friendly, careful English tutor. Continue a natural learning conversation, adapt to the learner's level, use clear language, correct important mistakes gently, and ask one useful follow-up question. The response must be valid JSON with the requested keys.", tutorSettings.instructions ? "ADMINISTRATOR'S USTOZ AI RULES (highest priority):\\n" + String(tutorSettings.instructions).slice(0, 4000) : ""].filter(Boolean).join("\\n\\n")
+              : "You are a careful English-learning assessor. Respond in Uzbek and output valid JSON only." },
             { role: "user", content: prompt },
           ],
           response_format: { type: "json_object" },

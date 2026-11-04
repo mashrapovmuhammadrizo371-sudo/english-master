@@ -1,4 +1,9 @@
 name = "english-master"
 compatibility_date = "2026-10-31"
 pages_build_output_dir = "./dist"
-previews = { }
+
+[[d1_databases]]
+binding = "DB"
+database_name = "english-master-db"
+database_id = "8915360e-dd00-47e3-83d5-b13060e7ac3b"
+migrations_dir = "migrations"
