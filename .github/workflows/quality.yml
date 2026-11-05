@@ -17,7 +17,11 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Check Pages Functions syntax
+        run: |
+          node --check 'functions/api/admin/[[path]].js'
+          node --check 'functions/api/learning/[[path]].js'
       - name: Run assessment unit tests
         run: npm test
-      - name: Build site and Pages Functions bundle
+      - name: Build frontend with Vite
         run: npm run build
