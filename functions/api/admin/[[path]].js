@@ -283,8 +283,9 @@ export async function onRequest({ request, env }) {
   if (path.startsWith("exams/") && path.endsWith("/publish") && method === "POST") {
     if (!has(auth, "exams.write")) return json({error:"Ruxsat yetarli emas."},403);
     const examId = path.split("/")[1];
-    const exam = await env.DB.prepare("SELECT id,status FROM exams WHERE id=?").bind(examId).first();
+    const exam = await env.DB.prepare("SELECT id,status,lesson_id FROM exams WHERE id=?").bind(examId).first();
     if (!exam) return json({error:"Test topilmadi."},404);
+    if (!exam.lesson_id) return json({error:"Mavzu testini nashr qilishdan oldin uni mavzuga biriktiring."},409);
     const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM exam_questions WHERE exam_id=?").bind(examId).first();
     if ((count?.count || 0) < 1) return json({error:"Nashr qilishdan oldin kamida bitta savol qo‘shing."},400);
     await env.DB.prepare("UPDATE exams SET status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(examId).run();
