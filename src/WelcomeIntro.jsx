@@ -24,7 +24,7 @@ export default function WelcomeIntro({ user, onContinue }) {
       )
     );
     const distance = targetY - startY;
-    const duration = 2200;
+    const duration = 4500;
     let startTime = 0;
 
     const stopScroll = () => {
