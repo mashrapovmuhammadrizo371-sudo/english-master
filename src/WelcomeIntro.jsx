@@ -1,8 +1,69 @@
 import { ArrowRight, BookOpen, Brain, ChartNoAxesCombined, GraduationCap, Sparkles } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import BrandMark from './BrandMark.jsx';
 import './welcome.css';
 
 export default function WelcomeIntro({ user, onContinue }) {
+  const actionRef = useRef(null);
+
+  useEffect(() => {
+    const target = actionRef.current;
+    if (!target) return undefined;
+
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return undefined;
+
+    let frameId = 0;
+    let cancelled = false;
+    const startY = window.scrollY;
+    const targetY = Math.max(
+      0,
+      Math.min(
+        document.documentElement.scrollHeight - window.innerHeight,
+        target.getBoundingClientRect().top + startY - (window.innerHeight - target.offsetHeight) / 2
+      )
+    );
+    const distance = targetY - startY;
+    const duration = 2200;
+    let startTime = 0;
+
+    const stopScroll = () => {
+      cancelled = true;
+      if (frameId) window.cancelAnimationFrame(frameId);
+    };
+    const handleKeyDown = (event) => {
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) stopScroll();
+    };
+
+    if (Math.abs(distance) > 12) {
+      window.addEventListener('wheel', stopScroll, { passive: true, once: true });
+      window.addEventListener('touchstart', stopScroll, { passive: true, once: true });
+      window.addEventListener('pointerdown', stopScroll, { passive: true, once: true });
+      window.addEventListener('keydown', handleKeyDown);
+
+      const animate = (now) => {
+        if (cancelled) return;
+        if (!startTime) startTime = now;
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        window.scrollTo(0, startY + distance * eased);
+        if (progress < 1) frameId = window.requestAnimationFrame(animate);
+      };
+      frameId = window.requestAnimationFrame(animate);
+    }
+
+    return () => {
+      cancelled = true;
+      if (frameId) window.cancelAnimationFrame(frameId);
+      window.removeEventListener('wheel', stopScroll);
+      window.removeEventListener('touchstart', stopScroll);
+      window.removeEventListener('pointerdown', stopScroll);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <main className="em-welcome">
       <div className="em-welcome__glow em-welcome__glow--one" aria-hidden="true" />
@@ -33,7 +94,7 @@ export default function WelcomeIntro({ user, onContinue }) {
         <article><span><ChartNoAxesCombined size={22} /></span><h2>CEFR &amp; IELTS</h2><p>Darajangizni tekshiring va keyingi maqsadingizni belgilang.</p></article>
       </section>
 
-      <section className="em-welcome__action" aria-label="O‘rganishni boshlash">
+      <section ref={actionRef} className="em-welcome__action" aria-label="O‘rganishni boshlash">
         <button className="em-welcome__cta" onClick={onContinue}>
           <span>Biz bilan yuqori natijalarga erishing</span>
           <ArrowRight size={23} />
