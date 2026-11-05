@@ -297,8 +297,27 @@ export default function TopicLearning({ onClose }) {
     if (pending && attempt.status === "started") sendDeparture(attempt.id, pending);
   }, [attempt?.id, attempt?.status, sendDeparture]);
 
+  const leaveTest = () => {
+    if (!attempt || attempt.status !== "started") {
+      setAttempt(null);
+      attemptRef.current = null;
+      return;
+    }
+    if (!window.confirm("Testdan chiqish sahifa uzilishi sifatida qayd etiladi. Birinchi chiqishda ogohlantirish, keyingi chiqishlarda " + attempt.penaltySeconds + " soniya vaqt kamayadi. Urinish saqlanadi. Chiqasizmi?")) return;
+    const key = eventId();
+    localStorage.setItem(pendingDepartureKey(attempt.id), key);
+    sendDeparture(attempt.id, key);
+    setAttempt(null);
+    attemptRef.current = null;
+  };
+
   const close = () => {
-    if (attempt?.status === "started" && !window.confirm("Test urinish saqlanadi, server taymeri davom etadi. Hozir chiqasizmi?")) return;
+    if (attempt?.status === "started") {
+      if (!window.confirm("Testdan chiqish sahifa uzilishi sifatida qayd etiladi. Birinchi chiqishda ogohlantirish, keyingi chiqishlarda " + attempt.penaltySeconds + " soniya vaqt kamayadi. Urinish saqlanadi. Hozir chiqasizmi?")) return;
+      const key = eventId();
+      localStorage.setItem(pendingDepartureKey(attempt.id), key);
+      sendDeparture(attempt.id, key);
+    }
     onClose?.();
   };
 
@@ -345,7 +364,7 @@ export default function TopicLearning({ onClose }) {
         </>}
 
         {attempt && !result && <>
-          <div className="tl-test-heading"><button className="tl-back-link" onClick={()=>{if(window.confirm("Testni vaqtincha yopasizmi? Urinish serverda saqlanadi.")){setAttempt(null);attemptRef.current=null;}}}><ArrowLeft size={16}/> Mavzuga qaytish</button><span className="tl-eyebrow">TOPIC ASSESSMENT</span><h1>{attempt.title}</h1><p>{attempt.courseTitle} · {attempt.lessonTitle}</p></div>
+          <div className="tl-test-heading"><button className="tl-back-link" onClick={leaveTest}><ArrowLeft size={16}/> Mavzuga qaytish</button><span className="tl-eyebrow">TOPIC ASSESSMENT</span><h1>{attempt.title}</h1><p>{attempt.courseTitle} · {attempt.lessonTitle}</p></div>
           <div className="tl-rules"><ShieldCheck size={18}/><span>Javoblaringiz avtomatik saqlanadi. Birinchi sahifa uzilishi ogohlantirish beradi; keyingi alohida uzilishlarda {attempt.penaltySeconds} soniya vaqt kamayadi. Brauzer signali aldov isboti emas.</span></div>
           {notice && <div className="tl-notice" role="status">{notice}</div>}
           {connectionIssue && <div className="tl-connection"><Wifi size={17}/> Internet yoki server aloqasi uzildi. Javoblar shu qurilmada saqlanadi; aloqa tiklangach serverga qayta yuboriladi.</div>}
