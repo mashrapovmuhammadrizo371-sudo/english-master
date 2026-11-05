@@ -67,7 +67,9 @@ export default function TopicLearning({ onClose }) {
     if (!nextAttempt) return;
     attemptRef.current = nextAttempt;
     setAttempt(nextAttempt);
-    setAnswers(nextAttempt.answers || {});
+    let localAnswers = {};
+    try { localAnswers = JSON.parse(localStorage.getItem("em-topic-answers:" + nextAttempt.id) || "{}"); } catch {}
+    setAnswers({ ...(nextAttempt.answers || {}), ...localAnswers });
     setServerOffset(Number(nextAttempt.serverNow || 0) - Math.floor(Date.now() / 1000));
     setRemaining(Number(nextAttempt.remainingSeconds || 0));
     if (nextAttempt.status === "submitted") setResult(nextAttempt.result || null);
@@ -230,7 +232,11 @@ export default function TopicLearning({ onClose }) {
   };
 
   const updateAnswer = (questionId, value) => {
-    setAnswers(current => ({ ...current, [questionId]: value }));
+    setAnswers(current => {
+      const next = { ...current, [questionId]: value };
+      if (attemptRef.current?.id) localStorage.setItem("em-topic-answers:" + attemptRef.current.id, JSON.stringify(next));
+      return next;
+    });
     setConnectionIssue(false);
   };
 
@@ -245,6 +251,7 @@ export default function TopicLearning({ onClose }) {
       });
       syncAttempt(data.attempt);
       setResult(data.result || data.attempt?.result || null);
+      localStorage.removeItem("em-topic-answers:" + attempt.id);
       setNotice("");
       setConnectionIssue(false);
     } catch (submitError) {
@@ -280,8 +287,15 @@ export default function TopicLearning({ onClose }) {
     setAnswers({});
     setNotice("");
     localStorage.removeItem(activeAttemptKey);
+    if (attempt?.id) localStorage.removeItem("em-topic-answers:" + attempt.id);
     try { await loadTopics(); } catch (loadError) { setError(loadError.message); }
   };
+
+  useEffect(() => {
+    if (!attempt?.id) return;
+    const pending = localStorage.getItem(pendingDepartureKey(attempt.id));
+    if (pending && attempt.status === "started") sendDeparture(attempt.id, pending);
+  }, [attempt?.id, attempt?.status, sendDeparture]);
 
   const close = () => {
     if (attempt?.status === "started" && !window.confirm("Test urinish saqlanadi, server taymeri davom etadi. Hozir chiqasizmi?")) return;
@@ -356,7 +370,7 @@ export default function TopicLearning({ onClose }) {
             <p>{result.correctCount}/{result.totalQuestions} ta savol to‘g‘ri. O‘tish chegarasi: {result.passPercent}%.</p>
             <div className={result.passed ? "tl-result-status success" : "tl-result-status"}>{result.passed ? "✓ Keyingi mavzu ochildi" : "Keyingi mavzu hozircha yopiq"}</div>
             <div className="tl-feedback-list">{(result.feedback||[]).map((item,index)=><article key={item.questionId} className={item.isCorrect ? "is-correct" : "is-incorrect"}><b>{index+1}. {item.prompt}</b><small>Sizning javobingiz: {item.selectedAnswer || "Javob berilmadi"}</small>{!item.isCorrect && <small>To‘g‘ri javob: {item.correctAnswer}</small>}{item.explanation && <p>{item.explanation}</p>}</article>)}</div>
-            <div className="tl-result-actions">{result.passed ? <button className="tl-primary" onClick={returnToTopics}>Keyingi mavzuni ochish <ArrowRight size={16}/></button> : <button className="tl-primary" onClick={()=>{setAttempt(null);attemptRef.current=null;setResult(null);setAnswers({});setNotice("Yangi urinish uchun savollar qayta aralashtiriladi.");}}>Yangi savollar bilan qayta topshirish <RefreshCw size={16}/></button>}<button className="tl-secondary" onClick={returnToTopics}>Mavzularga qaytish</button></div>
+            <div className="tl-result-actions">{result.passed ? <button className="tl-primary" onClick={returnToTopics}>Keyingi mavzuni ochish <ArrowRight size={16}/></button> : <button className="tl-primary" onClick={()=>{localStorage.removeItem(activeAttemptKey);localStorage.removeItem("em-topic-answers:"+attempt.id);setAttempt(null);attemptRef.current=null;setResult(null);setAnswers({});setNotice("Yangi urinish uchun savollar qayta aralashtiriladi.");}}>Yangi savollar bilan qayta topshirish <RefreshCw size={16}/></button>}<button className="tl-secondary" onClick={returnToTopics}>Mavzularga qaytish</button></div>
           </div>
         </>}
       </main>
