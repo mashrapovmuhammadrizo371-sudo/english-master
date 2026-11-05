@@ -67,7 +67,7 @@ export async function onRequest({ request, env }) {
   }
 
   if (path === "courses" && method === "GET") {
-    if (!has(auth, "courses.read") && !has(auth, "courses.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    if (!has(auth, "courses.read") && !has(auth, "courses.write") && !has(auth, "exams.read") && !has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
     const result = await env.DB.prepare("SELECT id,level,title,description,status,sort_order,created_at,updated_at FROM courses ORDER BY level,sort_order,title").all();
     return json({ courses: result.results || [] });
   }
@@ -87,30 +87,51 @@ export async function onRequest({ request, env }) {
 
   if (path === "exams" && method === "GET") {
     if (!has(auth, "exams.read") && !has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
-    const result = await env.DB.prepare("SELECT id,title,level,duration_seconds,pass_percent,status,created_at FROM exams ORDER BY created_at DESC LIMIT 200").all();
+    const result = await env.DB.prepare(`
+      SELECT e.id,e.title,e.level,e.duration_seconds,e.pass_percent,e.status,e.created_at,
+             e.lesson_id,e.question_count,e.penalty_seconds,l.title AS lesson_title,c.title AS course_title,
+             (SELECT COUNT(*) FROM exam_questions q WHERE q.exam_id=e.id) AS question_total
+      FROM exams e LEFT JOIN lessons l ON l.id=e.lesson_id
+      LEFT JOIN courses c ON c.id=l.course_id
+      ORDER BY e.created_at DESC LIMIT 200
+    `).all();
     return json({ exams: result.results || [] });
   }
 
   if (path === "exams" && method === "POST") {
     if (!has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
     const body = await request.json().catch(() => ({}));
-    const level = String(body.level || "").toUpperCase();
+    const courseId = String(body.course_id || "").trim();
+    const lessonId = String(body.lesson_id || "").trim();
     const title = String(body.title || "").trim().slice(0,120);
     const duration = Number(body.duration_seconds || 0);
-    const pass = Number(body.pass_percent || 80);
-    if (!["A1","A2","B1","B2","C1","C2"].includes(level) || !title || !Number.isInteger(duration) || duration < 60 || duration > 14400 || !Number.isInteger(pass) || pass < 1 || pass > 100) {
-      return json({ error: "Test nomi, darajasi, davomiyligi yoki o‘tish foizini tekshiring." }, 400);
+    const pass = Number(body.pass_percent ?? 80);
+    const questionCount = Number(body.question_count ?? 10);
+    const penalty = Number(body.penalty_seconds ?? 30);
+    const lesson = await env.DB.prepare("SELECT l.id,l.course_id,c.level FROM lessons l JOIN courses c ON c.id=l.course_id WHERE l.id=? AND c.id=?").bind(lessonId,courseId).first();
+    const level = String(body.level || lesson?.level || "").toUpperCase();
+    if (!lesson) return json({error:"Tanlangan mavzu ushbu kursga tegishli emas."},404);
+    if (level !== lesson.level || !title || !Number.isInteger(duration) || duration < 60 || duration > 14400 || !Number.isInteger(pass) || pass < 1 || pass > 100 || !Number.isInteger(questionCount) || questionCount < 1 || questionCount > 50 || !Number.isInteger(penalty) || penalty < 0 || penalty > 600) {
+      return json({ error: "Test nomi, kurs darajasi, davomiyligi, o‘tish foizi yoki vaqt sozlamalarini tekshiring." }, 400);
     }
+    const existing = await env.DB.prepare("SELECT id FROM exams WHERE lesson_id=?").bind(lessonId).first();
+    if (existing) return json({error:"Bu mavzuga test allaqachon biriktirilgan."},409);
     const examId = id();
-    await env.DB.prepare("INSERT INTO exams (id,title,level,duration_seconds,pass_percent,status) VALUES (?,?,?,?,?,'draft')").bind(examId,title,level,duration,pass).run();
-    await audit(env,auth,"exam.created","exam",examId,{title,level,duration,pass});
+    await env.DB.prepare("INSERT INTO exams (id,title,level,duration_seconds,pass_percent,status,lesson_id,question_count,penalty_seconds) VALUES (?,?,?,?,?,'draft',?,?,?)")
+      .bind(examId,title,level,duration,pass,lessonId,questionCount,penalty).run();
+    await audit(env,auth,"exam.created","exam",examId,{title,level,duration,pass,lessonId,questionCount,penalty});
     return json({ ok: true, id: examId }, 201);
   }
 
   if (path.startsWith("courses/") && path.endsWith("/lessons") && method === "GET") {
-    if (!has(auth, "courses.read") && !has(auth, "courses.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
+    if (!has(auth, "courses.read") && !has(auth, "courses.write") && !has(auth, "exams.read") && !has(auth, "exams.write")) return json({ error: "Ruxsat yetarli emas." }, 403);
     const courseId = path.split("/")[1];
-    const result = await env.DB.prepare("SELECT id,title,status,sort_order,created_at FROM lessons WHERE course_id=? ORDER BY sort_order,title").bind(courseId).all();
+    const result = await env.DB.prepare(`
+      SELECT l.id,l.title,l.status,l.sort_order,l.created_at,e.id AS exam_id,e.status AS exam_status,
+             e.pass_percent,e.question_count
+      FROM lessons l LEFT JOIN exams e ON e.lesson_id=l.id
+      WHERE l.course_id=? ORDER BY l.sort_order,l.title,l.id
+    `).bind(courseId).all();
     return json({ lessons: result.results || [] });
   }
 
@@ -124,9 +145,35 @@ export async function onRequest({ request, env }) {
     const content = String(body.content || "").trim().slice(0,10000);
     if (!title) return json({ error: "Dars nomini kiriting." }, 400);
     const lessonId = id();
-    await env.DB.prepare("INSERT INTO lessons (id,course_id,title,content_json,status) VALUES (?,?,?,?,'draft')").bind(lessonId,courseId,title,JSON.stringify({text:content})).run();
+    const nextOrder = await env.DB.prepare("SELECT COALESCE(MAX(sort_order),-1)+1 AS next_order FROM lessons WHERE course_id=?").bind(courseId).first();
+    await env.DB.prepare("INSERT INTO lessons (id,course_id,title,content_json,status,sort_order) VALUES (?,?,?,?,'draft',?)").bind(lessonId,courseId,title,JSON.stringify({text:content}),Number(nextOrder?.next_order||0)).run();
     await audit(env,auth,"lesson.created","lesson",lessonId,{courseId,title});
     return json({ ok: true, id: lessonId }, 201);
+  }
+
+  if (path.startsWith("courses/") && path.endsWith("/publish") && method === "POST") {
+    if (!has(auth, "courses.write")) return json({error:"Ruxsat yetarli emas."},403);
+    const courseId = path.split("/")[1];
+    const course = await env.DB.prepare("SELECT id,status FROM courses WHERE id=?").bind(courseId).first();
+    if (!course) return json({error:"Kurs topilmadi."},404);
+    const ready = await env.DB.prepare("SELECT COUNT(*) AS count FROM lessons WHERE course_id=? AND status='published'").bind(courseId).first();
+    if (Number(ready?.count||0) < 1) return json({error:"Kursni nashr qilishdan oldin kamida bitta mavzuni test bilan nashr qiling."},409);
+    await env.DB.prepare("UPDATE courses SET status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(courseId).run();
+    await audit(env,auth,"course.published","course",courseId,{publishedLessons:ready.count});
+    return json({ok:true});
+  }
+
+  if (path.startsWith("lessons/") && path.endsWith("/publish") && method === "POST") {
+    if (!has(auth, "courses.write")) return json({error:"Ruxsat yetarli emas."},403);
+    const lessonId = path.split("/")[1];
+    const lesson = await env.DB.prepare("SELECT l.id,l.status,e.id AS exam_id,e.status AS exam_status FROM lessons l LEFT JOIN exams e ON e.lesson_id=l.id WHERE l.id=?").bind(lessonId).first();
+    if (!lesson) return json({error:"Mavzu topilmadi."},404);
+    if (lesson.exam_status !== "published") return json({error:"Mavzuni nashr qilishdan oldin unga biriktirilgan testni nashr qiling."},409);
+    const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM exam_questions WHERE exam_id=?").bind(lesson.exam_id).first();
+    if (Number(count?.count||0) < 1) return json({error:"Mavzu testida kamida bitta savol bo‘lishi kerak."},409);
+    await env.DB.prepare("UPDATE lessons SET status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(lessonId).run();
+    await audit(env,auth,"lesson.published","lesson",lessonId,{examId:lesson.exam_id});
+    return json({ok:true});
   }
 
   if (path === "payments" && method === "GET") {
@@ -209,6 +256,7 @@ export async function onRequest({ request, env }) {
     const prompt = String(body.prompt || "").trim().slice(0,1200);
     const options = Array.isArray(body.options) ? body.options.map(x => String(x).trim().slice(0,240)).filter(Boolean).slice(0,6) : [];
     const correct = String(body.correct_answer || "").trim().slice(0,240);
+    const explanation = String(body.explanation || "").trim().slice(0,1200);
     const points = Number(body.points || 1);
     if (!prompt || options.length < 2 || options.length > 6 || new Set(options).size !== options.length || !options.includes(correct) || !Number.isFinite(points) || points <= 0 || points > 100) {
       return json({ error: "Savol matni, 2–6 ta takrorlanmas variant va ulardan biri bo‘lgan to‘g‘ri javobni kiriting." }, 400);
@@ -216,7 +264,7 @@ export async function onRequest({ request, env }) {
     const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM exam_questions WHERE exam_id=?").bind(examId).first();
     const questionId = id();
     await env.DB.prepare("INSERT INTO exam_questions (id,exam_id,question_json,answer_key_json,points,sort_order) VALUES (?,?,?,?,?,?)")
-      .bind(questionId,examId,JSON.stringify({prompt,options}),JSON.stringify({correct}),points,count?.count || 0).run();
+      .bind(questionId,examId,JSON.stringify({prompt,options,explanation}),JSON.stringify({correct}),points,count?.count || 0).run();
     await audit(env,auth,"exam.question_created","exam_question",questionId,{examId});
     return json({ok:true,id:questionId},201);
   }
@@ -235,8 +283,9 @@ export async function onRequest({ request, env }) {
   if (path.startsWith("exams/") && path.endsWith("/publish") && method === "POST") {
     if (!has(auth, "exams.write")) return json({error:"Ruxsat yetarli emas."},403);
     const examId = path.split("/")[1];
-    const exam = await env.DB.prepare("SELECT id,status FROM exams WHERE id=?").bind(examId).first();
+    const exam = await env.DB.prepare("SELECT id,status,lesson_id FROM exams WHERE id=?").bind(examId).first();
     if (!exam) return json({error:"Test topilmadi."},404);
+    if (!exam.lesson_id) return json({error:"Mavzu testini nashr qilishdan oldin uni mavzuga biriktiring."},409);
     const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM exam_questions WHERE exam_id=?").bind(examId).first();
     if ((count?.count || 0) < 1) return json({error:"Nashr qilishdan oldin kamida bitta savol qo‘shing."},400);
     await env.DB.prepare("UPDATE exams SET status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(examId).run();
