@@ -62,11 +62,15 @@ async function getAttemptPayload(env, attemptId, googleSub) {
       `SELECT id,question_json,points FROM exam_questions WHERE exam_id=? AND id IN (${placeholders})`
     ).bind(attempt.exam_id, ...order).all();
     const byId = new Map((result.results || []).map(row => [row.id, row]));
-    questions = order.map(questionId => byId.get(questionId)).filter(Boolean).map(row => ({
-      id: row.id,
-      ...parseJson(row.question_json, {}),
-      points: Number(row.points) || 1
-    }));
+    questions = order.map(questionId => byId.get(questionId)).filter(Boolean).map(row => {
+      const question = parseJson(row.question_json, {});
+      return {
+        id: row.id,
+        prompt: String(question.prompt || ""),
+        options: Array.isArray(question.options) ? question.options : [],
+        points: Number(row.points) || 1
+      };
+    });
   }
   const canRecover = effectiveStatus === "expired" && canRecoverAttempt(deadlineAt, now, Number(attempt.recovery_used) === 1);
   return {
