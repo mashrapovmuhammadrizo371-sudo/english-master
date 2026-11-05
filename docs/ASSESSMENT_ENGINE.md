@@ -14,7 +14,7 @@ A published course contains ordered, published topics. Each published topic is l
 
 ## Timing and interruptions
 - The server creates the deadline when an attempt starts. The browser countdown is informational; the server decides whether submission is on time.
-- A visibilitychange event to hidden is recorded as a page-visibility interruption signal. It is not proof of cheating and the UI must not accuse a learner.
+- A visibilitychange event to hidden, or an explicit confirmed exit from the active test UI, is recorded as a page-interruption signal. It is not proof of cheating and the UI must not accuse a learner.
 - The first recorded interruption warns without reducing time. Each later distinct event reduces the server deadline by the configured penalty (default 30 seconds).
 - Event IDs are unique per attempt so retries and duplicate browser requests cannot apply the same penalty twice.
 - blur and ordinary focus events are not used as integrity evidence.
