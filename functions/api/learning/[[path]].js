@@ -272,7 +272,8 @@ export async function onRequest({ request, env }) {
     const topicsResult = await env.DB.prepare(`
       SELECT c.id AS course_id,c.level,c.title AS course_title,c.description AS course_description,c.sort_order AS course_sort,
              l.id AS lesson_id,l.title AS lesson_title,l.content_json,l.sort_order AS lesson_sort,
-             e.id AS exam_id,e.title AS exam_title,e.duration_seconds,e.pass_percent,e.question_count
+             e.id AS exam_id,e.title AS exam_title,e.duration_seconds,e.pass_percent,e.question_count,
+             (SELECT COUNT(*) FROM exam_questions q WHERE q.exam_id=e.id) AS question_total
       FROM courses c
       JOIN lessons l ON l.course_id=c.id
       LEFT JOIN exams e ON e.lesson_id=l.id AND e.status='published'
@@ -304,7 +305,7 @@ export async function onRequest({ request, env }) {
         content:parseJson(row.content_json,{}).text || "",
         examId:row.exam_id,examTitle:row.exam_title,
         passPercent:Number(row.pass_percent || 80),
-        questionCount:Number(row.question_count || 0),
+        questionCount:Math.min(Number(row.question_count || 0),Number(row.question_total || 0)),
         unlocked,passed:isPassed,
         lastScore:lastAttempt?.score_percent === null || lastAttempt?.score_percent === undefined ? null : Number(lastAttempt.score_percent),
         attempts:hasExam ? attempts.filter(a=>a.exam_id===row.exam_id).length : 0
