@@ -7,6 +7,7 @@ import WelcomeIntro from './WelcomeIntro.jsx';
 import PlacementTest from './PlacementTest.jsx';
 import TutorChat from './TutorChat.jsx';
 import AdminPanel from './AdminPanel.jsx';
+import TopicLearning from './TopicLearning.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
 const readingPassages = [
@@ -64,6 +65,7 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showPlacementTest, setShowPlacementTest] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [topicLearningOpen, setTopicLearningOpen] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [authError, setAuthError] = useState('');
   const googleButtonRef = useRef(null);
@@ -348,6 +350,7 @@ function App() {
         <nav className={mobileMenu ? 'nav-links nav-open app-navigation' : 'nav-links app-navigation'} aria-label="Asosiy navigatsiya">
           <button className={activePage === 'home' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('home')}>Bosh sahifa</button>
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
+          <button className={topicLearningOpen ? 'nav-page active' : 'nav-page'} onClick={() => { setTopicLearningOpen(true); setMobileMenu(false); }}>Mavzular</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
           {(isAdmin || canAccessAdminPanel) && <button className={activePage === 'admin' ? 'nav-page active' : 'nav-page'} onClick={() => { setActivePage('admin'); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Admin Panel</button>}
@@ -398,7 +401,7 @@ function App() {
           <div className="section-heading"><span className="eyebrow">SIZ UCHUN YARATILGAN</span><h2>O‘rganishning aniq<br /><span>va qulay yo‘li.</span></h2><p>Kerakli ko‘nikmalarni bir joyda rivojlantiring. Platforma bosqichma-bosqich yangi imkoniyatlar bilan kengayadi.</p></div>
           <div className="feature-grid">
             <article className="feature-card"><div className="feature-icon icon-violet"><Target size={23}/></div><span className="feature-number">01</span><h3>Darajani aniqlash</h3><p>Matn asosidagi Reading testi orqali o‘qib tushunish ko‘nikmangizni tekshiring.</p><button onClick={startReading} className="text-link reading-link">Reading test <ArrowRight size={16}/></button></article>
-            <article className="feature-card"><div className="feature-icon icon-blue"><BookOpen size={23}/></div><span className="feature-number">02</span><h3>Darajaga mos darslar</h3><p>Grammatika, lug‘at va boshqa muhim mavzularni tartib bilan o‘rganing.</p><button onClick={() => setVocabOpen(true)} className="text-link">Lug‘atni ochish <ArrowRight size={16}/></button></article>
+            <article className="feature-card"><div className="feature-icon icon-blue"><BookOpen size={23}/></div><span className="feature-number">02</span><h3>Darajaga mos darslar</h3><p>Grammatika, lug‘at va boshqa muhim mavzularni tartib bilan o‘rganing.</p><button onClick={() => setTopicLearningOpen(true)} className="text-link">Mavzularni ochish <ArrowRight size={16}/></button></article>
             <article className="feature-card"><div className="feature-icon icon-orange"><Trophy size={23}/></div><span className="feature-number">03</span><h3>IELTS & CEFR practice</h3><p>Imtihon formatiga mos mashqlar orqali bilimingizni mustahkamlang.</p><button onClick={() => setAiTutorOpen(true)} className="text-link">Ustoz bilan mashq <ArrowRight size={16}/></button></article>
             <article className="feature-card"><div className="feature-icon icon-blue"><CheckCircle2 size={23}/></div><span className="feature-number">04</span><h3>AI orqali tekshirish</h3><p>Writing, Speaking, test va topshiriqlaringizga AI tahlili oling.</p><button onClick={() => setAssessmentOpen(true)} className="text-link">Javobni tekshirish <ArrowRight size={16}/></button></article>
           </div>
@@ -422,6 +425,7 @@ function App() {
         <section className="bottom-cta" id="about"><div><span className="eyebrow">ENGLISH MASTER</span><h2>Kelajakdagi ingliz tilingiz<br />bugungi qadamingizdan boshlanadi.</h2></div><button className="button-light" onClick={startReading}>Reading testini boshlash <ArrowRight size={18}/></button></section>
       </main>
       <footer className="em-footer"><a className="footer-brand em-footer__brand" href="#home" aria-label="English Master home"><BrandMark className="em-footer__mark" /><span>ENGLISH <b>MASTER</b></span></a><p className="em-footer__quote">Your Future Speaks English.</p><span>© 2026 English Master. O‘rganish yo‘lingiz shu yerdan boshlanadi.</span></footer>
+      {topicLearningOpen && <TopicLearning onClose={() => setTopicLearningOpen(false)} />}
 
       {isAdmin && bossOpen && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="BOSS AI Control Center"><div className="test-modal boss-modal"><button className="modal-close" onClick={() => setBossOpen(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · AI CONTROL CENTER</div><div className="result-icon"><Sparkles size={28}/></div><h2>👑 BOSS AI</h2><p className="lesson-intro">4 ta AI mutaxassis vazifani alohida tahlil qiladi. BOSS AI natijalarni birlashtirib, yagona tavsiya beradi.</p><div className="boss-team-grid"><div><b>💡 AI Innovator</b><small>Yangi g‘oyalar</small></div><div><b>🎨 AI Designer</b><small>Dizayn takliflari</small></div><div><b>🏗️ AI Builder</b><small>Funksiya rejasi</small></div><div><b>🔍 AI Analyst</b><small>Tahlil va ustuvorlik</small></div></div><div className="boss-chat-history">{bossMessages.map((message,index)=><div className={message.role==='user'?'tutor-chat-bubble user':'tutor-chat-bubble assistant'} key={index}><b>{message.role==='user'?'Siz':'👑 BOSS AI'}</b><p>{message.content}</p></div>)}{bossBusy && <div className="tutor-chat-bubble assistant"><p>4 ta AI ishlayapti, BOSS natijalarni birlashtirmoqda…</p></div>}</div><textarea className="tutor-input" value={bossInput} onChange={e=>setBossInput(e.target.value)} placeholder="Masalan: Saytga yangi Speaking bo‘limi uchun g‘oya ber…" rows="3" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitBossTask();}}}/><button className="button-primary test-next" disabled={!bossInput.trim()||bossBusy} onClick={submitBossTask}>{bossBusy?'AI jamoasi ishlayapti…':'Jamoaga topshiriq berish'} <ArrowRight size={16}/></button><div className="result-note">AI tavsiya va reja beradi; hozircha sayt kodini avtomatik o‘zgartirmaydi.</div></div></div>}
       {showProfile && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Profil"><div className="test-modal profile-modal"><button className="modal-close" onClick={() => setShowProfile(false)} aria-label="Yopish"><X size={21}/></button><div className="test-kicker">ENGLISH MASTER · PROFIL</div><div className="result-icon">{authUser.picture ? <img src={authUser.picture} alt="" style={{width:64,height:64,borderRadius:'50%',objectFit:'cover'}} /> : <GraduationCap size={28}/>}</div><h2>Shaxsiy profilingiz</h2><p className="lesson-intro">Google hisobingizga ulangan ma’lumotlar.</p><div className="daily-prompt"><b>{authUser.name || 'Foydalanuvchi'}</b>{authUser.email && <span>{authUser.email}</span>}</div><button className="button-primary test-next" onClick={() => { setShowProfile(false); signOut(); }}>Hisobdan chiqish <ArrowRight size={16}/></button></div></div>}
