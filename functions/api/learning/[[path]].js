@@ -285,8 +285,12 @@ export async function onRequest({ request, env }) {
     `).bind(String(user.id)).all();
     const attempts = attemptsResult.results || [];
     const passed = new Set(attempts.filter(a => a.status === "submitted" && Number(a.score_percent) >= Number(a.pass_percent)).map(a => a.exam_id));
-    const latest = new Map();
-    for (const attempt of attempts) if (!latest.has(attempt.exam_id)) latest.set(attempt.exam_id, attempt);
+    const bestScores = new Map();
+    for (const attempt of attempts) {
+      if (attempt.score_percent === null || attempt.score_percent === undefined) continue;
+      const score = Number(attempt.score_percent);
+      bestScores.set(attempt.exam_id, Math.max(bestScores.get(attempt.exam_id) ?? 0, score));
+    }
     const courses = new Map();
     for (const row of topicsResult.results || []) {
       if (!courses.has(row.course_id)) courses.set(row.course_id, {
@@ -295,7 +299,6 @@ export async function onRequest({ request, env }) {
       const course = courses.get(row.course_id);
       const hasExam = Boolean(row.exam_id);
       const isPassed = hasExam && passed.has(row.exam_id);
-      const lastAttempt = hasExam ? latest.get(row.exam_id) : null;
       const unlocked = course.canContinue && hasExam;
       course.topics.push({
         id:row.lesson_id,title:row.lesson_title,
@@ -304,7 +307,7 @@ export async function onRequest({ request, env }) {
         passPercent:Number(row.pass_percent || 80),
         questionCount:Math.min(Number(row.question_count || 0),Number(row.question_total || 0)),
         unlocked,passed:isPassed,
-        lastScore:lastAttempt?.score_percent === null || lastAttempt?.score_percent === undefined ? null : Number(lastAttempt.score_percent),
+        lastScore:hasExam && bestScores.has(row.exam_id) ? bestScores.get(row.exam_id) : null,
         attempts:hasExam ? attempts.filter(a=>a.exam_id===row.exam_id).length : 0
       });
       course.canContinue = course.canContinue && isPassed;
