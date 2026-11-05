@@ -238,11 +238,8 @@ async function handleDeparture(env, attemptId, googleSub, eventKey) {
         UPDATE exam_integrity_events
         SET departure_number=?,penalty_seconds=?,applied_at=CURRENT_TIMESTAMP
         WHERE attempt_id=? AND event_key=? AND applied_at IS NULL
-          AND EXISTS (
-            SELECT 1 FROM exam_attempts
-            WHERE id=? AND google_sub=? AND departure_count=?
-          )
-      `).bind(departureNumber,penalty,attemptId,eventKey,attemptId,googleSub,departureNumber)
+          AND changes()=1
+      `).bind(departureNumber,penalty,attemptId,eventKey)
     ]);
     if (Number(batch?.[0]?.meta?.changes) > 0) {
       const updated = await getAttemptPayload(env,attemptId,googleSub);
