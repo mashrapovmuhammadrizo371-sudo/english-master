@@ -56,8 +56,32 @@ const readingPassages = [
   },
 ];
 
+
+const ANDROID_APP_DOWNLOAD_URL = 'https://nightly.link/mashrapovmuhammadrizo371-sudo/english-master/workflows/android-debug.yml/android-app-setup/english-master-android-debug.zip';
+
+function AppDownloadPrompt({ onDismiss }) {
+  return (
+    <aside className="app-download-prompt" aria-label="ENGLISH MASTER Android ilovasi">
+      <div className="app-download-prompt__top">
+        <span className="app-download-prompt__icon" aria-hidden="true">📱</span>
+        <div className="app-download-prompt__copy">
+          <strong>ENGLISH MASTER ilovasini yuklab oling</strong>
+          <p>Android telefoningizda qulayroq o‘rganing.</p>
+          <small>Android · Sinov versiyasi</small>
+        </div>
+        <button className="app-download-prompt__close" type="button" onClick={onDismiss} aria-label="Yopish">×</button>
+      </div>
+      <div className="app-download-prompt__actions">
+        <a href={ANDROID_APP_DOWNLOAD_URL} onClick={onDismiss}>Ilovani yuklab olish <span aria-hidden="true">↓</span></a>
+        <button type="button" onClick={onDismiss}>Keyinroq</button>
+      </div>
+      <p className="app-download-prompt__note">ZIP faylni oching va ichidagi app-debug.apk faylini o‘rnating.</p>
+    </aside>
+  );
+}
+
 function App() {
-  const [introDone, setIntroDone] = useState(false);
+  const [introDone, setIntroDone] = useState(false);\n  const [showAppDownloadPrompt, setShowAppDownloadPrompt] = useState(() => localStorage.getItem('em-app-download-dismissed') !== 'true');\n  const dismissAppDownloadPrompt = () => { localStorage.setItem('em-app-download-dismissed', 'true'); setShowAppDownloadPrompt(false); };
   const [mobileMenu, setMobileMenu] = useState(false);
   const [authUser, setAuthUser] = useState(null);
   const [canAccessAdminPanel, setCanAccessAdminPanel] = useState(false);
@@ -310,10 +334,10 @@ function App() {
   if (!introDone) return <BrandIntro onComplete={() => setIntroDone(true)} />;
 
   if (authChecking) {
-    return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>Hisobingiz tekshirilmoqda</h1><p>Google hisobingiz xavfsiz tekshirilmoqda…</p><div className="auth-loading-line"></div></div></div>;
+    return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>Hisobingiz tekshirilmoqda</h1><p>Google hisobingiz xavfsiz tekshirilmoqda…</p><div className="auth-loading-line"></div></div>{showAppDownloadPrompt && <AppDownloadPrompt onDismiss={dismissAppDownloadPrompt} />}</div>;
   }
   if (!authUser) {
-    return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div></div>;
+    return <div className="auth-screen"><div className="auth-card"><div className="auth-brand-lockup"><BrandMark className="auth-brand-mark" /><span className="auth-kicker">ENGLISH MASTER</span><span className="auth-brand-quote">Your Future Speaks English.</span></div><h1>O‘rganish yo‘lingizni boshlang.</h1><p>Saytga kirish va o‘quv profilingizni ochish uchun Google hisobingiz bilan davom eting.</p><div ref={googleButtonRef} className="google-login-button"></div>{authError && <p className="auth-error">{authError}</p>}<small>Google hisobingiz paroli English Master bilan ulashilmaydi.</small></div>{showAppDownloadPrompt && <AppDownloadPrompt onDismiss={dismissAppDownloadPrompt} />}</div>;
   }
 
   if ((isAdmin || canAccessAdminPanel) && activePage === 'admin') return <AdminPanel user={authUser} onExit={() => setActivePage('home')} />;
@@ -338,7 +362,7 @@ function App() {
   if (showPlacementTest) return <PlacementTest onComplete={(result) => { localStorage.setItem('em-placement-completed', JSON.stringify({ ...result, completedAt: Date.now() })); setShowPlacementTest(false); }} />;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell">\n      {showAppDownloadPrompt && <AppDownloadPrompt onDismiss={dismissAppDownloadPrompt} />}
       <header className="topbar">
         <a className="brand em-brand" href="#home" aria-label="English Master home">
           <BrandMark />
