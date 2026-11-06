@@ -81,7 +81,9 @@ function AppDownloadPrompt({ onDismiss }) {
 }
 
 function App() {
-  const [introDone, setIntroDone] = useState(false);\n  const [showAppDownloadPrompt, setShowAppDownloadPrompt] = useState(() => localStorage.getItem('em-app-download-dismissed') !== 'true');\n  const dismissAppDownloadPrompt = () => { localStorage.setItem('em-app-download-dismissed', 'true'); setShowAppDownloadPrompt(false); };
+  const [introDone, setIntroDone] = useState(false);
+  const [showAppDownloadPrompt, setShowAppDownloadPrompt] = useState(() => localStorage.getItem('em-app-download-dismissed') !== 'true');
+  const dismissAppDownloadPrompt = () => { localStorage.setItem('em-app-download-dismissed', 'true'); setShowAppDownloadPrompt(false); };
   const [mobileMenu, setMobileMenu] = useState(false);
   const [authUser, setAuthUser] = useState(null);
   const [canAccessAdminPanel, setCanAccessAdminPanel] = useState(false);
