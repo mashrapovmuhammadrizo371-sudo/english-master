@@ -6,6 +6,7 @@ import BrandIntro from './BrandIntro.jsx';
 import WelcomeIntro from './WelcomeIntro.jsx';
 import PlacementTest from './PlacementTest.jsx';
 import TutorChat from './TutorChat.jsx';
+import SpeakerStudio from './SpeakerStudio.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronRight, GraduationCap, Headphones, Menu, MessageCircle, ShieldCheck, Sparkles, Target, Trophy, X, CalendarCheck, Languages, Star, Flame } from 'lucide-react';
 
@@ -376,6 +377,7 @@ function App() {
           <button className={activePage === 'lessons' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('lessons')}>Darslar</button>
           <button className={activePage === 'tests' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tests')}>Testlar</button>
           <button className={activePage === 'tutor' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('tutor')}>AI Tutor</button>
+          <button className={activePage === 'speaker' ? 'nav-page active' : 'nav-page'} onClick={() => navigateTo('speaker')}>Speaker AI</button>
           {(isAdmin || canAccessAdminPanel) && <button className={activePage === 'admin' ? 'nav-page active' : 'nav-page'} onClick={() => { setActivePage('admin'); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Admin Panel</button>}
           {isAdmin && <button className="nav-page boss-nav" onClick={() => { setBossOpen(true); setMobileMenu(false); }}>👑 BOSS AI</button>}
           <button className="nav-page" onClick={() => { setShowProfile(true); setMobileMenu(false); }}>Profil</button>
@@ -383,6 +385,7 @@ function App() {
       </header>
 
       <main id="home" className="app-pages" data-page={activePage}>
+        {activePage === 'speaker' && <SpeakerStudio />}
         {activePage === 'home' && <BrandHero />}
         <section className="hero" id="em-start">
           <div className="hero-copy">
