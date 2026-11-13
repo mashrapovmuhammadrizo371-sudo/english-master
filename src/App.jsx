@@ -393,7 +393,7 @@ function App() {
             <h1>Ingliz tilingizni<br /> <span>maqsad bilan</span> o‘rganing.</h1>
             <p className="hero-description">CEFR va IELTS imtihonlariga tayyorgarlikni o‘z darajangizdan boshlang. Bilimingizni tekshiring, yo‘lingizni belgilang va bosqichma-bosqich rivojlaning.</p>
             <div className="hero-actions">
-              <button className="button-reading" onClick={startReading}><BookOpen size={17} /> Reading testi</button>
+              <button className="button-reading" onClick={() => setShowPlacementTest(true)}><Sparkles size={17} /> Writing orqali darajani aniqlash</button>
               <a className="button-quiet" href="#features"><span className="play-icon">↗</span> Platformani ko‘rish</a>
             </div>
             <div className="trust-row"><span><CheckCircle2 size={16} /> Boshlash bepul</span><span><CheckCircle2 size={16} /> O‘z darajangizdan</span><span><CheckCircle2 size={16} /> IELTS & CEFR</span><span><Flame size={16} /> {dailyStats.streak} kunlik streak</span></div>
@@ -426,7 +426,7 @@ function App() {
         <section className="features-section" id="features">
           <div className="section-heading"><span className="eyebrow">SIZ UCHUN YARATILGAN</span><h2>O‘rganishning aniq<br /><span>va qulay yo‘li.</span></h2><p>Kerakli ko‘nikmalarni bir joyda rivojlantiring. Platforma bosqichma-bosqich yangi imkoniyatlar bilan kengayadi.</p></div>
           <div className="feature-grid">
-            <article className="feature-card"><div className="feature-icon icon-violet"><Target size={23}/></div><span className="feature-number">01</span><h3>Darajani aniqlash</h3><p>Matn asosidagi Reading testi orqali o‘qib tushunish ko‘nikmangizni tekshiring.</p><button onClick={startReading} className="text-link reading-link">Reading test <ArrowRight size={16}/></button></article>
+            <article className="feature-card"><div className="feature-icon icon-violet"><Target size={23}/></div><span className="feature-number">01</span><h3>Darajani aniqlash</h3><p>Essay yozing, AI grammatikangiz, lug‘atingiz va fikrlaringizni tahlil qilib, taxminiy CEFR darajangizni aniqlaydi.</p><button onClick={() => setShowPlacementTest(true)} className="text-link reading-link">Writing assessment <ArrowRight size={16}/></button></article>
             <article className="feature-card"><div className="feature-icon icon-blue"><BookOpen size={23}/></div><span className="feature-number">02</span><h3>Darajaga mos darslar</h3><p>Grammatika, lug‘at va boshqa muhim mavzularni tartib bilan o‘rganing.</p><button onClick={() => setVocabOpen(true)} className="text-link">Lug‘atni ochish <ArrowRight size={16}/></button></article>
             <article className="feature-card"><div className="feature-icon icon-orange"><Trophy size={23}/></div><span className="feature-number">03</span><h3>IELTS & CEFR practice</h3><p>Imtihon formatiga mos mashqlar orqali bilimingizni mustahkamlang.</p><button onClick={() => setAiTutorOpen(true)} className="text-link">Ustoz bilan mashq <ArrowRight size={16}/></button></article>
             <article className="feature-card"><div className="feature-icon icon-blue"><CheckCircle2 size={23}/></div><span className="feature-number">04</span><h3>AI orqali tekshirish</h3><p>Writing, Speaking, test va topshiriqlaringizga AI tahlili oling.</p><button onClick={() => setAssessmentOpen(true)} className="text-link">Javobni tekshirish <ArrowRight size={16}/></button></article>
