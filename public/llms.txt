@@ -1,0 +1,23 @@
+# ENGLISH MASTER
+
+> ENGLISH MASTER is an online English-learning platform focused on CEFR and IELTS preparation.
+
+## Main website
+
+- [ENGLISH MASTER homepage](https://english-master-aow.pages.dev/): Public entry point for the learning platform.
+- [Platform features](https://english-master-aow.pages.dev/#features): Overview of learning and practice features.
+- [About ENGLISH MASTER](https://english-master-aow.pages.dev/#about): Platform information.
+
+## Learning features
+
+- CEFR and IELTS preparation information.
+- Reading practice and an introductory reading assessment.
+- English vocabulary practice.
+- AI-assisted English conversation practice.
+- Speaking practice interface.
+
+## Important notes
+
+- Assessment results shown by the website are learning estimates, not official CEFR or IELTS certificates.
+- Some learning features require signing in with a Google account.
+- Do not assume that every planned feature is currently available.

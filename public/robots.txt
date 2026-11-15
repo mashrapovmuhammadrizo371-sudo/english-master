@@ -1,0 +1,6 @@
+# ENGLISH MASTER crawler and agent discovery rules
+User-agent: *
+Allow: /
+
+Sitemap: https://english-master-aow.pages.dev/sitemap.xml
+Agentmap: https://english-master-aow.pages.dev/.well-known/ard.json
